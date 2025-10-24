@@ -31,9 +31,9 @@ class Seat(models.Model):
     is_window_seat = models.BooleanField(default=False, verbose_name="Asiento de Ventanilla")
 
     CLASS_CHOICES = [
-        (('ECONOMY', 'Económica'),
-         ('BUSINESS', 'Negocios'),
-         ('FIRST', 'Primera Clase')),
+        ('ECONOMY', 'Económica'),
+        ('BUSINESS', 'Negocios'),
+        ('FIRST', 'Primera Clase'),
     ]
     seat_class = models.CharField(max_length=10, choices=CLASS_CHOICES, verbose_name="Clase de Asiento")
 

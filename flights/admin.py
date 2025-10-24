@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Aircraft, Seat, Flight, Reservation, Passenger, Ticket
+from .models import Aircraft, Flight, Passenger, Seat, Reservation, Ticket
 
 #administracion de aviones
 @admin.register(Aircraft)
