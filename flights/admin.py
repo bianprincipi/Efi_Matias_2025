@@ -23,6 +23,7 @@ class SeatAdmin(admin.ModelAdmin):
 
 
 #administracion de vuelos
+@admin.register(Flight)
 class FlightAdmin(admin.ModelAdmin):
     list_display = ('flight_number', 'origin', 'destination', 'departure_time', 'aircraft')
     list_filter = ('origin', 'destination', 'departure_time')
