@@ -18,6 +18,7 @@ from .serializers import (
     SeatSerializer,
     TicketSerializer    
 ) 
+import uuid #generar codigo de barras
 
 
 def index(request):
@@ -159,12 +160,35 @@ class VueloViewSet(viewsets.ModelViewSet):
     filterset_fields = ['origin', 'destination', 'departure_time']
     
     def get_permissions(self):
-        if self.action in ['list', 'retrieve']:
+        if self.action in ['list', 'retrieve', 'pasajeros']:
             permission_classes = [AllowAny] 
         else:
             permission_classes = [IsAdminUser] 
         
         return [permission() for permission in permission_classes]
+    
+    @action(detail=True, methods=['get'], url_path='pasajeros', permission_classes=[AllowAny])
+    def pasajeros(self, request, pk=None):
+        """Devuelve todos los pasajeros que tienen una reserva confirmada para este vuelo."""
+        flight = self.get_object() 
+
+        #filtramos por reservas confirmadas
+        reservations = Reservation.objects.filter(
+            flight=flight,
+            estado__in=['CONFIRMADA', 'EMITIDO']
+        ).select_related('passenger')
+
+        #solo los pasajeros
+        passengers = [res.passenger for res in reservations]
+
+        #usamos el passengerserializer para serializar la lista de pasajeros
+        serializer = PassengerSerializer(passengers, many=True) 
+
+        return Response({
+            "vuelo": flight.flight_number,
+            "total_pasajeros_activos": len(passengers),
+            "pasajeros": serializer.data
+        })
 
 
 class PassengerViewSet(viewsets.ModelViewSet):
@@ -177,20 +201,34 @@ class PassengerViewSet(viewsets.ModelViewSet):
     serializer_class = PassengerSerializer
     
     def get_permissions(self):
-        if self.action in ['create', 'retrieve', 'reservas']:
+        if self.action in ['create', 'retrieve', 'reservas', 'reservas_activas']:
             permission_classes = [AllowAny] 
         else: 
             permission_classes = [IsAdminUser] 
         
         return [permission() for permission in permission_classes]
 
-    @action(detail=True, methods=['get'], permission_classes=[AllowAny])
-    def reservas(self, request, pk=None):
-        """Devuelve todas las reservas asociadas a un pasajero específico."""
+    @action(detail=True, methods=['get'], url_path='reservas_activas', permission_classes=[AllowAny])
+    def reservas_activas(self, request, pk=None):
+        """Devuelve solo las reservas activas (confirmadas o pendientes) de un pasajero."""
         passenger = self.get_object() 
-        reservations = Reservation.objects.filter(passenger=passenger).select_related('flight', 'seat')
-        serializer = ReservationSerializer(reservations, many=True) 
-        return Response(serializer.data)
+        
+        # Filtramos por estados considerados "activos"
+        active_states = ['PENDIENTE', 'CONFIRMADA', 'EMITIDO'] 
+        
+        active_reservations = Reservation.objects.filter(
+            passenger=passenger, 
+            # ⚠️ Ajustar 'estado' al campo real de tu modelo
+            estado__in=active_states 
+        ).select_related('flight', 'seat').order_by('booking_date')
+        
+        serializer = ReservationSerializer(active_reservations, many=True) 
+        
+        return Response({
+            "pasajero": f"{passenger.first_name} {passenger.last_name}",
+            "reservas_activas_count": active_reservations.count(),
+            "reservas": serializer.data
+        })
 
 
 class ReservationViewSet(viewsets.GenericViewSet, 
