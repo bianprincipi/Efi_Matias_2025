@@ -1,14 +1,28 @@
 from django.contrib import admin
 from .models import Aircraft, Flight, Passenger, Seat, Reservation, Ticket
 
-#administracion de aviones
+# --- INLINES ---
+# 1. Muestra Asientos dentro de Avión
+class SeatInline(admin.TabularInline):
+    model = Seat
+    extra = 1
+    raw_id_fields = ('aircraft',) # Es redundante aquí, pero buena práctica si se usara en otro admin
+
+# 2. Muestra Reservas dentro de Vuelo
+class ReservationInline(admin.TabularInline):
+    model = Reservation
+    extra = 1
+    raw_id_fields = ('passenger', 'seat', 'flight') # Incluimos 'flight' por si es necesario en el formulario
+
+
+# --- ADMINISTRACIÓN DE AVIONES (Aircraft) ---
 @admin.register(Aircraft)
 class AircraftAdmin(admin.ModelAdmin):
-    list_display = ('registration_number', 'model', 'capacity')
-    search_fields = ('registration_number', 'model')
+    list_display = ('registration_number', 'model_name', 'capacity') # Nota: Cambié 'model' por 'model_name' para coincidir con tu modelo
+    search_fields = ('registration_number', 'model_name')
+    inlines = [SeatInline] # <-- AGREGADO: Muestra los asientos del avión
 
-
-#administracion de asientos
+# --- ADMINISTRACIÓN DE ASIENTOS (Seat) ---
 @admin.register(Seat)
 class SeatAdmin(admin.ModelAdmin):
     list_display = ('seat_number', 'get_aircraft_reg', 'seat_class', 'is_window_seat')
@@ -16,28 +30,28 @@ class SeatAdmin(admin.ModelAdmin):
     search_fields = ('seat_number', 'aircraft__registration_number')
     raw_id_fields = ('aircraft',)
 
-    #funcion para mostrar la matricula del avion
     def get_aircraft_reg(self, obj):
         return obj.aircraft.registration_number
     get_aircraft_reg.short_description = 'Matrícula del Avión'
 
 
-#administracion de vuelos
+# --- ADMINISTRACIÓN DE VUELOS (Flight) ---
 @admin.register(Flight)
 class FlightAdmin(admin.ModelAdmin):
     list_display = ('flight_number', 'origin', 'destination', 'departure_time', 'aircraft')
     list_filter = ('origin', 'destination', 'departure_time')
     search_fields = ('flight_number', 'origin', 'destination')
     raw_id_fields = ('aircraft',)
+    inlines = [ReservationInline] # <-- AGREGADO: Muestra las reservas asociadas al vuelo
 
 
-#administracion de pasajeros
+# --- ADMINISTRACIÓN DE PASAJEROS (Passenger) ---
 @admin.register(Passenger)
 class PassengerAdmin(admin.ModelAdmin):
     list_display = ('last_name', 'first_name', 'email', 'phone_number')
     search_fields = ('last_name', 'first_name', 'email')
 
-#administracion de reservas
+# --- ADMINISTRACIÓN DE RESERVAS (Reservation) ---
 @admin.register(Reservation)
 class ReservationAdmin(admin.ModelAdmin):
     list_display = ('reservation_code', 'flight', 'passenger', 'seat', 'booking_date')
@@ -46,7 +60,7 @@ class ReservationAdmin(admin.ModelAdmin):
     raw_id_fields = ('passenger', 'flight', 'seat')
 
 
-#administracion de tickets
+# --- ADMINISTRACIÓN DE BILLETES (Ticket) ---
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
     list_display = ('booking_reference', 'reservation_id', 'price', 'is_checked_in', 'issue_date')

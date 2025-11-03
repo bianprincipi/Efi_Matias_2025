@@ -1,0 +1,34 @@
+{% if flights %}
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>Vuelo</th>
+                    <th>Origen</th>
+                    <th>Destino</th>
+                    <th>Salida</th>
+                    <th>Avión</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for flight in flights %}
+                    <tr>
+                        <td>{{ flight.flight_number }}</td>
+                        <td>{{ flight.origin }}</td>
+                        <td>{{ flight.destination }}</td>
+                        <td>{{ flight.departure_time|date:"d M H:i" }}</td>
+                        <td>{{ flight.aircraft.registration_number }}</td>
+                        <td>
+                            <a href="{% url 'flight_detail' flight.id %}" class="btn btn-sm btn-info text-white">Reservar</a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% else %}
+    <div class="alert alert-info">
+        No hay vuelos listados o no se encontraron resultados.
+    </div>
+{% endif %}

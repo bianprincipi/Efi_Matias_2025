@@ -55,6 +55,14 @@ class Flight(models.Model):
     departure_time = models.DateTimeField(verbose_name="Hora de Salida")
     arrival_time = models.DateTimeField(verbose_name="Hora de Llegada")
 
+    def clean(self):
+        # Validación: Hora de llegada posterior a la de salida
+        if self.departure_time and self.arrival_time and self.arrival_time <= self.departure_time:
+            raise ValidationError("La hora de llegada debe ser posterior a la hora de salida.")
+        
+        if self.aircraft and self.aircraft.capacity <= 0:
+             raise ValidationError("El avión asignado no tiene una capacidad de asientos válida (capacidad = 0).")
+
     def __str__(self):
         return f"Vuelo {self.flight_number}: {self.origin} -> {self.destination}"
     
@@ -88,9 +96,29 @@ class Reservation(models.Model):
     booking_date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Reserva")
 
     def clean(self):
-        return f"Reserva {self.reservation_code} para Vuelo {self.flight.flight_number}"
+        # Validación 1: El asiento debe pertenecer al avión del vuelo.
+        if self.seat and self.flight and self.seat.aircraft != self.flight.aircraft:
+            raise ValidationError({
+                'seat': f"El asiento {self.seat.seat_number} pertenece al avión {self.seat.aircraft.registration_number}, "
+                f"pero el vuelo {self.flight.flight_number} usa el avión {self.flight.aircraft.registration_number}."
+            })
     
-
+    def save(self, *args, **kwargs):
+        self.full_clean() 
+        # Validación 2: No exceder la capacidad del avión
+        current_reservations_count = Reservation.objects.filter(flight=self.flight).exclude(pk=self.pk).count()
+        
+        total_reservas_final = current_reservations_count + 1
+        capacidad = self.flight.aircraft.capacity
+        
+        if total_reservas_final > capacidad:
+            raise ValidationError(f"Capacidad excedida. El vuelo {self.flight.flight_number} solo tiene {capacidad} asientos.")
+            
+        super().save(*args, **kwargs) # Llama al método save original
+        
+    def __str__(self):
+        return f"Reserva {self.reservation_code} para Vuelo {self.flight.flight_number} - {self.passenger.last_name}"
+    
     class Meta:
         verbose_name = "Reserva"
         verbose_name_plural = "Reservas"
