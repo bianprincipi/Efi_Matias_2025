@@ -3,10 +3,18 @@
 import os
 import sys
 
+# --- BLOQUE CLAVE PARA SOLUCIONAR EL PATH ---
+# Esto garantiza que el directorio raíz del proyecto esté en el path de Python
+project_root = os.path.dirname(os.path.abspath(__file__))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+# ---------------------------------------------
+
 
 def main():
     """Run administrative tasks."""
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Efi_Matias_2025.settings')
+    # ¡CORRECCIÓN! Ahora busca "settings" directamente, ya que está en la raíz.
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "settings")
     try:
         from django.core.management import execute_from_command_line
     except ImportError as exc:
