@@ -37,14 +37,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    
-    # Tus aplicaciones existentes
     'flights.apps.FlightsConfig',
-    
-    # ---------------------------------------------
-    # 💥 AÑADIDO: Django Rest Framework (DRF)
     'rest_framework', 
-    # ---------------------------------------------
+    'rest_framework_simplejwt', 
 ]
 
 MIDDLEWARE = [

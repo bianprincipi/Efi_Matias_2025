@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from .forms import FlightSearchForm, ReservationForm 
 from rest_framework import viewsets, filters, mixins
+from .permissions import IsAirlineAdmin
 from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.decorators import action 
 from rest_framework.response import Response 
@@ -19,6 +20,7 @@ from .serializers import (
     TicketSerializer    
 ) 
 import uuid #generar codigo de barras
+from .services.ticket_servide import TicketService
 
 
 def index(request):
@@ -163,7 +165,7 @@ class VueloViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve', 'pasajeros']:
             permission_classes = [AllowAny] 
         else:
-            permission_classes = [IsAdminUser] 
+            permission_classes = [IsAirlineAdmin] 
         
         return [permission() for permission in permission_classes]
     
@@ -204,7 +206,7 @@ class PassengerViewSet(viewsets.ModelViewSet):
         if self.action in ['create', 'retrieve', 'reservas', 'reservas_activas']:
             permission_classes = [AllowAny] 
         else: 
-            permission_classes = [IsAdminUser] 
+            permission_classes = [IsAirlineAdmin]
         
         return [permission() for permission in permission_classes]
 
@@ -242,7 +244,7 @@ class ReservationViewSet(viewsets.GenericViewSet,
     serializer_class = ReservationSerializer
     
     def get_permissions(self):
-        permission_classes = [AllowAny] 
+        permission_classes = [IsAirlineAdmin] 
         return [permission() for permission in permission_classes]
 
     def create(self, request, *args, **kwargs):
@@ -299,7 +301,7 @@ class AircraftViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve', 'layout', 'disponibilidad']:
             permission_classes = [AllowAny]
         else:
-            permission_classes = [IsAdminUser]
+            permission_classes = [IsAirlineAdmin]
         return [permission() for permission in permission_classes]
 
     @action(detail=True, methods=['get'])
@@ -345,7 +347,7 @@ class AircraftViewSet(viewsets.ModelViewSet):
             "asientos": serializer.data
         })
 
-class TicketViewSet(viewsets.ModelViewSet):
+class TicketViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     """
     ViewSet para la Gestión de Boletos.
     Endpoints: /api/boletos/
@@ -357,38 +359,36 @@ class TicketViewSet(viewsets.ModelViewSet):
     
     def get_permissions(self):
         """Permisos: Generar y consultar: usuario autenticado"""
-        permission_classes = [AllowAny]
+        permission_classes = [IsAirlineAdmin]
         return [permission() for permission in permission_classes]
 
     @action(detail=False, methods=['post'], url_path='generar')
     def generar(self, request):
-        """Genera un nuevo boleto basado en una reserva existente."""
-        reservation_code = request.data.get('codigo_reserva')
+        """
+        Genera un boleto a partir de una reserva confirmada, delegando toda 
+        la lógica de negocio al TicketService.
+        """
+        reservation_code = request.data.get('reservation_code')
         
         if not reservation_code:
-            return Response({"error": "Debe proporcionar el código de reserva ('codigo_reserva')."}, 
-                            status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({"error": "Debe proporcionar el código de reserva ('reservation_code')."}, 
+                        status=status.HTTP_400_BAD_REQUEST)
+            
         try:
-            reservation = Reservation.objects.get(reservation_code=reservation_code)
-        except Reservation.DoesNotExist:
-            return Response({"error": "Reserva no encontrada con el código proporcionado."}, 
-                            status=status.HTTP_404_NOT_FOUND)
+            boleto = TicketService.generate_ticket(reservation_code)
+            
+            # Si el servicio retorna el boleto, la operación fue exitosa.
+            serializer = self.get_serializer(boleto)
+            return Response({
+                "message": "Boleto generado con éxito.",
+                "data": serializer.data
+            }, status=status.HTTP_201_CREATED)
+
+        except ValidationError as e:
+            # Captura errores de validación del servicio
+            return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
-        if hasattr(reservation, 'ticket'):
-            return Response({"error": "Ya existe un boleto asociado a esta reserva."}, 
-                            status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            ticket = Ticket.objects.create(
-                reservation=reservation,
-                price=100.00 
-            )
-            serializer = self.get_serializer(ticket)
-            return Response(
-                {"message": "Boleto generado con éxito.", "data": serializer.data}, 
-                status=status.HTTP_201_CREATED
-            )
         except Exception as e:
-            return Response({"error": f"Ocurrió un error al generar el boleto: {str(e)}"}, 
-                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            # Captura cualquier otro error inesperado
+            return Response({"error": f"Error interno al generar el boleto: {str(e)}"}, 
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
