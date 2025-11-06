@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Buscador de Vuelos | Aerolínea EFI{% endblock %}
+
+{% block content %}
+
+<div class="hero-section"> 
+    <div class="container">
+        <h1 class="text-center" style="font-weight: 300; margin-bottom: 50px;">
+            Encuentra tu próximo vuelo
+        </h1>
+    </div>
+</div>
+
+<div class="search-box-wrapper">
+    <div class="container">
+        <div class="search-box-container">
+            
+            <div class="search-tabs">
+                <span class="active">Vuelos</span>
+                <span>Hoteles</span>
+                <span>Paquetes</span>
+            </div>
+            
+            <form method="get" action="{% url 'flights:search_flights' %}" class="search-form-row flight-search-form"> 
+                
+                <div class="form-field-group">
+                    <label for="{{ search_form.origin.id_for_label }}">Origen</label>
+                    {{ search_form.origin }}
+                </div>
+
+                <div class="form-field-group">
+                    <label for="{{ search_form.destination.id_for_label }}">Destino</label>
+                    {{ search_form.destination }}
+                </div>
+
+                <div class="form-field-group">
+                    <label for="{{ search_form.date.id_for_label }}">Fecha de Salida</label>
+                    {{ search_form.date }}
+                </div>
+            
+                <div class="form-field-group" style="flex-grow: 0;">
+                    <button type="submit" class="search-button">
+                        Buscar Vuelos
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="content-section"> 
+    <h2>Próximos Vuelos Disponibles</h2>
+    
+    {% if flights %}
+        <div class="flight-list">
+            </div>
+    {% else %}
+        <p>No hay vuelos programados actualmente.</p>
+    {% endif %}
+</div>
+
+{% endblock %}

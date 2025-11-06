@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="admin-dashboard-container">
+    <header class="dashboard-header">
+        <h1>👋 Panel de Control de Administrador</h1>
+        <p class="user-greeting">Bienvenido, {{ request.user.username }}. Gestiona tu aerolínea eficientemente.</p>
+    </header>
+
+    <div class="quick-links-section">
+        <h2>🛠️ Accesos Rápidos</h2>
+        <div class="quick-links-grid">
+            <a href="{% url 'admin:index' %}" class="card admin-link-card">
+                <h3><span class="emoji">⚙️</span> Gestión de Modelos (CRUD)</h3>
+                <p>Crea, edita o elimina Vuelos, Pasajeros, Aviones, etc. (Django Admin).</p>
+            </a>
+            <a href="/swagger/" class="card admin-link-card">
+                <h3><span class="emoji">🔗</span> Pruebas de API (Swagger)</h3>
+                <p>Documentación interactiva para probar los endpoints REST.</p>
+            </a>
+            <a href="{% url 'flight_index' %}" class="card admin-link-card">
+                <h3><span class="emoji">✈️</span> Sitio Web Público</h3>
+                <p>Ver la página de búsqueda y reservas como un cliente.</p>
+            </a>
+        </div>
+    </div>
+
+    <div class="management-section">
+        <h2>📊 Gestión de Recursos (API)</h2>
+        <p>Funcionalidades críticas accesibles vía API o Django Admin:</p>
+        <ul class="management-list">
+            <li><span class="emoji">🚀</span> **Creación de Vuelos:** Definir nuevas rutas y horarios.</li>
+            <li><span class="emoji">💺</span> **Gestión de Layouts:** Configurar aviones y sus asientos.</li>
+            <li><span class="emoji">📋</span> **Reportes de Pasajeros:** Obtener listados por número de vuelo.</li>
+        </ul>
+    </div>
+
+</div>
+{% endblock %}

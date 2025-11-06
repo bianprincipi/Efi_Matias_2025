@@ -6,23 +6,18 @@ from .models import Reservation, Flight, Seat, Passenger
 class FlightSearchForm(forms.Form):
     """Formulario para filtrar vuelos por origen, destino y fecha."""
     
-    # Obtener todas las ciudades únicas de origen/destino
-    # El método .distinct() asegura que no haya duplicados
-    cities = Flight.objects.values_list('origin', flat=True).distinct().order_by('origin')
-    CITY_CHOICES = [(city, city) for city in cities]
-    
-    # Añadimos una opción de "Cualquiera" para que el usuario pueda elegir no filtrar
-    CITY_CHOICES.insert(0, ('', '--- Todos ---'))
-    
+    # Eliminamos las líneas de consulta directa de la base de datos aquí.
+
+    # Definimos los campos como variables de clase
     origin = forms.ChoiceField(
-        choices=CITY_CHOICES,
+        choices=[], # Lo inicializamos vacío
         required=False,
         label="Origen",
         widget=forms.Select(attrs={'class': 'form-control'})
     )
     
     destination = forms.ChoiceField(
-        choices=CITY_CHOICES,
+        choices=[], # Lo inicializamos vacío
         required=False,
         label="Destino",
         widget=forms.Select(attrs={'class': 'form-control'})
@@ -31,11 +26,35 @@ class FlightSearchForm(forms.Form):
     date = forms.DateField(
         required=False,
         label="Fecha de Salida",
-        # Usamos DateInput con type='date' para un mejor control en navegadores
         widget=forms.DateInput(attrs={'type': 'date', 'class': 'form-control'})
     )
-
-
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # 💥 ESTA LÓGICA SOLO SE EJECUTA CUANDO SE CREA UNA INSTANCIA DEL FORMULARIO 💥
+        try:
+            # 1. Obtener ciudades
+            cities = Flight.objects.values_list('origin', 'destination').distinct()
+            
+            # Combinar orígenes y destinos en un conjunto para obtener opciones únicas
+            unique_cities = set()
+            for origin, destination in cities:
+                unique_cities.add(origin)
+                unique_cities.add(destination)
+            
+            # Crear la lista de opciones
+            CITY_CHOICES = sorted([(city, city) for city in unique_cities])
+            CITY_CHOICES.insert(0, ('', '--- Todos ---'))
+            
+            # 2. Asignar las opciones a los campos
+            self.fields['origin'].choices = CITY_CHOICES
+            self.fields['destination'].choices = CITY_CHOICES
+            
+        except Exception as e:
+            # Si hay un error (ej. tabla no existe), no hacemos nada y dejamos la lista vacía.
+            # print(f"DEBUG: Error al cargar ciudades: {e}") 
+            pass
 
 # 2. Formulario para la Creación de Reservas
 class ReservationForm(forms.ModelForm):
@@ -87,3 +106,4 @@ class ReservationForm(forms.ModelForm):
             raise forms.ValidationError("El asiento seleccionado ya ha sido reservado. Por favor, elige otro.")
         
         return seat
+

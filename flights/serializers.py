@@ -2,6 +2,8 @@ from rest_framework import serializers
 from .models import (
     Aircraft, Flight, Passenger, Reservation, Seat, Ticket
 )
+from .services.reservation_services import ReservationService
+from django.core.exceptions import ValidationError
 
 class AircraftDetailSerializer(serializers.ModelSerializer):
     """Serializador simple para mostrar información del Avión asignado."""
@@ -71,6 +73,21 @@ class ReservationSerializer(serializers.ModelSerializer):
             'passenger_name', 'flight_number', 'seat_number'
         ]
         read_only_fields = ['id', 'reservation_code', 'booking_date', 'passenger_name', 'flight_number', 'seat_number']
+
+    def create(self, validated_data):
+        flight_id = validated_data['flight'].id
+        seat_id = validated_data['seat'].id
+        passenger_data = validated_data['passenger']
+
+        try: 
+            reservation = ReservationService.create_reservation(
+                flight_id=flight_id,
+                seat_id=seat_id,
+                passenger_data=passenger_data
+            )
+            return reservation
+        except ValidationError as e:
+            raise serializers.ValidationError({"error": e.message})
         
     def validate(self, data):
         flight = data.get('flight')
@@ -126,4 +143,3 @@ class TicketSerializer(serializers.ModelSerializer):
             'flight_number', 'seat_number'
         ]
         read_only_fields = fields 
-        
