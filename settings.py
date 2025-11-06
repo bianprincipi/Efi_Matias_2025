@@ -132,23 +132,36 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # 💥 AÑADIDO: Configuración de Django Rest Framework (DRF)
 # ---------------------------------------------
 REST_FRAMEWORK = {
-    # Habilita el navegador web de la API para pruebas y desarrollo
+    # Renderers: Mantenemos el navegador para desarrollo
     'DEFAULT_RENDERER_CLASSES': [
         'rest_framework.renderers.JSONRenderer',
         'rest_framework.renderers.BrowsableAPIRenderer',
     ],
     
-    # Configuración de Autenticación por defecto
-    # Usaremos SessionAuthentication temporalmente para facilitar el desarrollo/pruebas.
-    # Luego la cambiaremos a Token/JWT (requisito del trabajo).
+    # 🔑 Autenticación por defecto: Usar JWT
     'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication', 
+        # Mantenemos SessionAuth para poder usar el navegador de la API si estás logueado en el admin
         'rest_framework.authentication.SessionAuthentication', 
     ],
 
-    # Configuración de Permisos por defecto
-    # Usaremos AllowAny temporalmente para desarrollar los endpoints.
-    # Luego la cambiaremos a IsAuthenticated y custom permissions (requisito del trabajo).
+    # 🛡️ Permisos por defecto: Requerir Token para TODAS las URLs
+    # Esto garantiza que todos los endpoints (excepto los que anules) estén protegidos.
     'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.AllowAny',
+        'rest_framework.permissions.IsAuthenticated',
     ],
+}
+
+# ---------------------------------------------
+# ⏱️ Configuración de Duración y Propiedades de JWT
+# ---------------------------------------------
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),  # Token de acceso dura 1 hora
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),    # Token de refresh dura 1 semana
+    "ROTATE_REFRESH_TOKENS": True,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": SECRET_KEY, 
+    "AUTH_HEADER_TYPES": ("Bearer",),
 }

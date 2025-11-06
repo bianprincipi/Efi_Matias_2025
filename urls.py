@@ -27,18 +27,18 @@ urlpatterns = [
     path('', RedirectView.as_view(url='flights/', permanent=True), name='index_redirect'),
     path('admin/', admin.site.urls),
 
-    #conecta lasa urls de la aplicacion fligths
+    # conecta las urls de la aplicacion fligths
     path('flights/', include('flights.urls')),
 
     path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(next_page='/flights/'), name='logout'),
 
-    #endpoints de autenticacion jwt
+    # endpoints de autenticacion jwt
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('/api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    #rutas de documentacion swagger/redoc
-    path('/swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
+    # rutas de documentacion swagger/redoc
+    path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'), # <-- CORREGIDO EN DRF_YASG
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]

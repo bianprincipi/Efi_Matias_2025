@@ -1,12 +1,14 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
+# Importar todas las vistas necesarias desde el módulo .views (incluyendo la nueva APIView)
 from . import views 
 from .views import (
     VueloViewSet, 
     PassengerViewSet, 
     ReservationViewSet, 
     AircraftViewSet,
-    TicketViewSet
+    TicketViewSet,
+    SearchFlightsAPIView # <-- 1. IMPORTACIÓN DE LA NUEVA VISTA API
 ) 
 from rest_framework import routers
 
@@ -24,7 +26,7 @@ urlpatterns = [
     # HOME PAGE (Muestra Cliente o redirige a Admin Dashboard si es staff)
     path('', views.index, name='index'),
     
-    # BÚSQUEDA WEB
+    # BÚSQUEDA WEB (VISTA TRADICIONAL - Puedes eliminarla si solo usas API)
     path('search/', views.search_flights, name='search_flights'),
     
     # DASHBOARD DE ADMINISTRADOR WEB
@@ -37,5 +39,11 @@ urlpatterns = [
     path('ticket/<int:ticket_id>/', views.ticket_detail, name='ticket_detail'),
 
     # RUTAS API REST
+    
+    # 2. ENDPOINT DE BÚSQUEDA API DEDICADO
+    # Ejemplo de uso en Postman: /api/vuelos/buscar/?origin=BUE&destination=COR
+    path('api/vuelos/buscar/', SearchFlightsAPIView.as_view(), name='flight-search-api'),
+    
+    # ENDPOINTS CRUD (Generados por el Router)
     path('api/', include(router.urls)), 
 ]

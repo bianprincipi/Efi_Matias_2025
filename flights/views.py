@@ -4,11 +4,12 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from .forms import FlightSearchForm, ReservationForm
 from rest_framework import viewsets, filters, mixins
-from .permissions import IsAirlineAdmin
+from .permissions import IsAirlineAdmin # <-- TU PERMISO PERSONALIZADO
 from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.decorators import action 
 from rest_framework.response import Response 
 from rest_framework import status 
+from rest_framework.views import APIView # <-- Importado para la nueva vista de búsqueda
 from django_filters.rest_framework import DjangoFilterBackend  
 from .models import Flight, Passenger, Reservation, Seat, Ticket, Aircraft 
 from .serializers import (
@@ -25,15 +26,14 @@ from django.contrib.admin.views.decorators import staff_member_required
 import random
 
 
+# =======================================================================================
+# 1. VISTAS TRADICIONALES DE DJANGO (Retornan HTML para el Front-end)
+# =======================================================================================
+
 def index(request):
     """
-        Controlador principal que diferencia entre Cliente y Administrador.
+        Controlador principal. Muestra la página de búsqueda y los vuelos iniciales.
     """
-    # Si el usuario está autenticado y es personal, redirigirlo al dashboard (Descomentar si usas autenticación)
-    # if request.user.is_authenticated and request.user.is_staff:
-    #     return redirect('admin_dashboard')
-    
-    # Muestra la página de búsqueda con algunos vuelos iniciales (solo los primeros 5)
     search_form = FlightSearchForm()
 
     try: 
@@ -49,94 +49,67 @@ def index(request):
     return render(request, 'flights/index.html', context)
 
 
+# ⚠️ NOTA: Esta vista tradicional (search_flights) puede ser eliminada si solo usas la API.
 def search_flights(request):
     """
-        Procesa el formulario de búsqueda de vuelos y muestra los resultados.
+        Procesa el formulario de búsqueda de vuelos y muestra los resultados (retorna HTML).
     """
     results = Flight.objects.none() # Inicializa un QuerySet vacío
     
-    # Instanciamos el formulario con los datos GET
     form = FlightSearchForm(request.GET)
     
     if form.is_valid():
-        # Obtener datos limpios
         origin = form.cleaned_data.get('origin')
         destination = form.cleaned_data.get('destination')
         date = form.cleaned_data.get('date')
         
-        # Base de la consulta
         queryset = Flight.objects.all()
         
-        # 1. Filtrar por Origen
         if origin:
-            # Filtra por el valor exacto del origen (nombre de la ciudad)
             queryset = queryset.filter(origin=origin) 
-        
-        # 2. Filtrar por Destino
         if destination:
             queryset = queryset.filter(destination=destination)
-        
-        # 3. Filtrar por Fecha (solo el día)
         if date:
-            # Filtra por la parte de la fecha del campo datetime
             queryset = queryset.filter(departure_time__date=date)
             
-        # Ejecutar y ordenar los resultados
         results = queryset.order_by('departure_time')
 
     context = {
-        'search_form': form, # Pasamos el formulario con los datos de búsqueda de vuelta
-        'results': results,  # Los vuelos encontrados
+        'search_form': form, 
+        'results': results, 
         'page_title': "Resultados de Búsqueda"
     }
     
-    # Renderizamos la plantilla search_results.html
     return render(request, 'flights/search_results.html', context)
 
 def flight_detail(request, flight_id):
     """
-    Muestra los detalles de un vuelo específico, el plano de asientos
-    y maneja la creación de una reserva (POST).
+    Muestra los detalles de un vuelo específico y maneja la creación de una reserva (POST).
     """
     flight = get_object_or_404(Flight, pk=flight_id)
     aircraft = flight.aircraft
 
-    # Obtener IDs de asientos ya reservados para este vuelo
     reserved_seat_ids = Reservation.objects.filter(flight=flight).values_list('seat_id', flat=True)
-    
-    # Obtener todos los asientos de la aeronave
     all_seats = Seat.objects.filter(aircraft=aircraft).order_by('row_number', 'letter')
 
-    # 1. Manejar el envío del formulario de reserva (POST)
     if request.method == 'POST':
-        # Instanciamos el ReservationForm, pasándole el objeto Flight para filtrar asientos
         form = ReservationForm(request.POST, flight=flight)
         
         if form.is_valid():
-            # Generar código de reserva aleatorio de 6 caracteres
             code = ''.join(random.choices('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=6))
 
-            # Crear la nueva reserva (pero no guardar todavía)
             reservation = form.save(commit=False)
             reservation.flight = flight
             reservation.reservation_code = code
             
-            # Guardar la reserva
             reservation.save()
             
-            # Redirigir a una página de confirmación o de inicio
-            return redirect('index') # Puedes cambiar esto a una página de confirmación
+            return redirect('index') # Redirigir a una página de confirmación
         
-    # 2. Manejar la solicitud inicial (GET)
     else:
-        # Instanciamos el formulario de reserva, pasándole el objeto Flight para inicializar campos
         form = ReservationForm(flight=flight)
-        
-        # Filtramos el queryset de asientos del formulario para mostrar solo los disponibles
-        # Usamos .exclude() para quitar los IDs reservados
         form.fields['seat'].queryset = all_seats.exclude(id__in=reserved_seat_ids)
 
-    # Organizar asientos para la visualización del plano
     seats_by_row = {}
     for seat in all_seats:
         is_reserved = seat.id in reserved_seat_ids
@@ -153,7 +126,6 @@ def flight_detail(request, flight_id):
         'page_title': f"Reservar Vuelo {flight.flight_number}",
     }
     return render(request, 'flights/flight_detail.html', context)
-
 
 
 def passenger_detail(request, passenger_id):
@@ -187,6 +159,49 @@ def ticket_detail(request, ticket_id):
     }
     return render(request, 'flights/ticket_detail.html', context)
 
+@staff_member_required #solo permite si el usuario ha iniciado sesion y es staff/admin
+def admin_dashboard(request):
+    """
+        Muestra el panel de control del administrador.
+    """
+    context = {
+        'page_title': 'Panel de Administración.'
+    }
+    return render(request, 'flights/admin_dashboard.html', context)
+
+
+# =======================================================================================
+# 2. VISTAS DE DJANGO REST FRAMEWORK (Retornan JSON para la API)
+# =======================================================================================
+
+class SearchFlightsAPIView(APIView):
+    """
+    Endpoint dedicado para la búsqueda de vuelos por origen, destino y fecha.
+    Es completamente público (para el cliente/pasajero).
+    Endpoint: /api/vuelos/buscar/
+    """
+    permission_classes = [AllowAny] 
+
+    def get(self, request, format=None):
+        origin = request.query_params.get('origin')
+        destination = request.query_params.get('destination')
+        date = request.query_params.get('date') 
+        
+        queryset = Flight.objects.all()
+        
+        if origin:
+            queryset = queryset.filter(origin=origin)
+        if destination:
+            queryset = queryset.filter(destination=destination)
+        if date:
+            # Filtra por la parte de la fecha del campo datetime (ej: '2025-12-31')
+            queryset = queryset.filter(departure_time__date=date) 
+            
+        results = queryset.order_by('departure_time')
+        
+        serializer = VueloSerializer(results, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
 
 class VueloViewSet(viewsets.ModelViewSet):
     """
@@ -200,9 +215,11 @@ class VueloViewSet(viewsets.ModelViewSet):
     filterset_fields = ['origin', 'destination', 'departure_time']
     
     def get_permissions(self):
+        # Permite list, retrieve y 'pasajeros' (información de búsqueda) a cualquiera.
         if self.action in ['list', 'retrieve', 'pasajeros']:
             permission_classes = [AllowAny] 
         else:
+            # Requiere Admin para: create, update, partial_update, destroy
             permission_classes = [IsAirlineAdmin] 
         
         return [permission() for permission in permission_classes]
@@ -212,16 +229,13 @@ class VueloViewSet(viewsets.ModelViewSet):
         """Devuelve todos los pasajeros que tienen una reserva confirmada para este vuelo."""
         flight = self.get_object() 
 
-        #filtramos por reservas confirmadas
         reservations = Reservation.objects.filter(
             flight=flight,
             estado__in=['CONFIRMADA', 'EMITIDO']
         ).select_related('passenger')
 
-        #solo los pasajeros
         passengers = [res.passenger for res in reservations]
 
-        #usamos el passengerserializer para serializar la lista de pasajeros
         serializer = PassengerSerializer(passengers, many=True) 
 
         return Response({
@@ -241,9 +255,11 @@ class PassengerViewSet(viewsets.ModelViewSet):
     serializer_class = PassengerSerializer
     
     def get_permissions(self):
+        # Permite: create (registro), retrieve (ver detalle), reservas_activas a cualquiera.
         if self.action in ['create', 'retrieve', 'reservas', 'reservas_activas']:
             permission_classes = [AllowAny] 
         else: 
+            # Requiere Admin para: list, update, partial_update, destroy
             permission_classes = [IsAirlineAdmin]
         
         return [permission() for permission in permission_classes]
@@ -253,12 +269,10 @@ class PassengerViewSet(viewsets.ModelViewSet):
         """Devuelve solo las reservas activas (confirmadas o pendientes) de un pasajero."""
         passenger = self.get_object() 
         
-        # Filtramos por estados considerados "activos"
         active_states = ['PENDIENTE', 'CONFIRMADA', 'EMITIDO'] 
         
         active_reservations = Reservation.objects.filter(
             passenger=passenger, 
-            # ⚠️ Ajustar 'estado' al campo real de tu modelo
             estado__in=active_states 
         ).select_related('flight', 'seat').order_by('booking_date')
         
@@ -276,13 +290,22 @@ class ReservationViewSet(viewsets.GenericViewSet,
                          mixins.RetrieveModelMixin):
     """
     ViewSet para la Gestión de Reservas.
-    Permite: Crear (POST /api/reservas/), Detalle (GET /api/reservas/<id>/) y Cambiar Estado (PATCH /api/reservas/<id>/estado/).
+    Permite: Crear (POST) para el Cliente, Detalle (GET) y Admin para el resto.
+    Endpoints: /api/reservas/
     """
     queryset = Reservation.objects.all()
     serializer_class = ReservationSerializer
     
     def get_permissions(self):
-        permission_classes = [IsAirlineAdmin] 
+        # Permite crear la reserva a cualquiera (cliente)
+        if self.action == 'create':
+            permission_classes = [AllowAny]
+        # Permite ver el detalle a cualquiera
+        elif self.action == 'retrieve':
+             permission_classes = [AllowAny]
+        else:
+            # Requiere Admin para el resto (list, update, destroy si los incluyeras)
+            permission_classes = [IsAirlineAdmin] 
         return [permission() for permission in permission_classes]
 
     def create(self, request, *args, **kwargs):
@@ -303,9 +326,9 @@ class ReservationViewSet(viewsets.GenericViewSet,
         except Exception as e:
             return Response({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-    @action(detail=True, methods=['patch'], url_path='estado', permission_classes=[AllowAny])
+    @action(detail=True, methods=['patch'], url_path='estado', permission_classes=[IsAirlineAdmin])
     def cambiar_estado(self, request, pk=None):
-        """Permite cambiar el estado de la reserva (ej. 'CONFIRMADA', 'CANCELADA')."""
+        """Permite cambiar el estado de la reserva. (Solo Admin)."""
         
         reservation = self.get_object()
         new_state = request.data.get('estado')
@@ -314,7 +337,10 @@ class ReservationViewSet(viewsets.GenericViewSet,
             return Response({"error": "Debe proporcionar el nuevo estado de la reserva ('estado')."}, 
                             status=status.HTTP_400_BAD_REQUEST)
         
+        # ⚠️ Aquí deberías agregar la lógica real para validar y cambiar el estado en el modelo
         try:
+            # reservation.estado = new_state # Descomentar y validar si es un estado válido
+            # reservation.save()
             print(f"Estado de reserva {reservation.reservation_code} cambiado a {new_state}.")
             
             return Response(
@@ -336,13 +362,15 @@ class AircraftViewSet(viewsets.ModelViewSet):
     serializer_class = AircraftSerializer
     
     def get_permissions(self):
+        # Permite list, retrieve y las acciones a cualquiera.
         if self.action in ['list', 'retrieve', 'layout', 'disponibilidad']:
             permission_classes = [AllowAny]
         else:
+            # Requiere Admin para: create, update, destroy
             permission_classes = [IsAirlineAdmin]
         return [permission() for permission in permission_classes]
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], permission_classes=[AllowAny])
     def layout(self, request, pk=None):
         """Devuelve todos los asientos asociados al avión."""
         aircraft = self.get_object()
@@ -350,7 +378,7 @@ class AircraftViewSet(viewsets.ModelViewSet):
         serializer = SeatSerializer(seats, many=True) 
         return Response(serializer.data)
 
-    @action(detail=True, methods=['get'])
+    @action(detail=True, methods=['get'], permission_classes=[AllowAny])
     def disponibilidad(self, request, pk=None):
         """
         Verifica y devuelve la lista de asientos disponibles para un vuelo 
@@ -387,24 +415,22 @@ class AircraftViewSet(viewsets.ModelViewSet):
 
 class TicketViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     """
-    ViewSet para la Gestión de Boletos.
+    ViewSet para la Gestión de Boletos. (Solo Admin).
     Endpoints: /api/boletos/
-    Permite: generar (POST) y consultar por ID o codifo (Retrieve).
     """
     queryset = Ticket.objects.all().select_related('reservation__flight', 'reservation__passenger', 'reservation__seat')
     serializer_class = TicketSerializer
-    lookup_field = 'codigo_barra' # Permite buscar por código de barra además del ID.
+    lookup_field = 'codigo_barra' 
     
     def get_permissions(self):
-        """Permisos: Generar y consultar: usuario autenticado"""
+        """Permisos: Requiere Admin para todas las acciones."""
         permission_classes = [IsAirlineAdmin]
         return [permission() for permission in permission_classes]
 
-    @action(detail=False, methods=['post'], url_path='generar')
+    @action(detail=False, methods=['post'], url_path='generar', permission_classes=[IsAirlineAdmin])
     def generar(self, request):
         """
-        Genera un boleto a partir de una reserva confirmada, delegando toda 
-        la lógica de negocio al TicketService.
+        Genera un boleto a partir de una reserva confirmada (Solo Admin).
         """
         reservation_code = request.data.get('reservation_code')
         
@@ -415,7 +441,6 @@ class TicketViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         try:
             boleto = TicketService.generate_ticket(reservation_code)
             
-            # Si el servicio retorna el boleto, la operación fue exitosa.
             serializer = self.get_serializer(boleto)
             return Response({
                 "message": "Boleto generado con éxito.",
@@ -423,21 +448,8 @@ class TicketViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
             }, status=status.HTTP_201_CREATED)
 
         except ValidationError as e:
-            # Captura errores de validación del servicio
             return Response({"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         
         except Exception as e:
-            # Captura cualquier otro error inesperado
             return Response({"error": f"Error interno al generar el boleto: {str(e)}"}, 
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
-
-@staff_member_required #solo permite si el usuario ha iniciado sesion y es staff/admin
-def admin_dashboard(request):
-    """
-        Muestra el panel de control del administrador.
-    """
-    context = {
-        'page_title': 'Panel de Administración.'
-    }
-    return render(request, 'flights/admin_dashboard.html', context)
