@@ -499,9 +499,230 @@ body {
     font-size: 24px;
     margin-bottom: 3px;
 }
+/* ===================================================================
+   CARRUSEL DE OFERTAS Y TARJETAS
+   =================================================================== */
 
-/* Las reglas redundantes (.service-nav, .service-icon img/span) fueron eliminadas o consolidadas. */
+.content-section {
+    padding: 30px 0;
+}
 
+.carousel-wrapper {
+    position: relative; /* Clave para posicionar las flechas absolutas */
+    display: flex;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.carousel-container {
+    /* Define el área visible del carrusel, oculta el contenido extra */
+    overflow: hidden; 
+    width: 100%;
+}
+
+.carousel-track {
+    /* Contiene todas las tarjetas y permite la alineación horizontal */
+    display: flex; 
+    transition: transform 0.5s ease; /* Para la animación de deslizamiento (JS) */
+    gap: 20px; /* Espacio entre las tarjetas */
+    padding: 10px 0; 
+}
+
+/* 1. ESTILO DE LA TARJETA INDIVIDUAL */
+.package-card {
+    /* **CÁLCULO CRÍTICO:** Para que entren 4 tarjetas con 3 espacios (gaps) */
+    /* Ancho total (100%) dividido entre 4, menos el espacio del gap */
+    width: calc((100% - 60px) / 4); 
+    flex-shrink: 0; /* Impide que las tarjetas se achiquen */
+    
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* Para que la imagen respete los bordes */
+    position: relative;
+    text-decoration: none;
+    color: inherit;
+}
+
+/* 2. ENVOLTURA DE LA IMAGEN */
+.image-wrapper {
+    position: relative;
+}
+
+.package-card img {
+    width: 100%;
+    height: 180px; /* Altura fija para la imagen */
+    object-fit: cover;
+    border-radius: 8px 8px 0 0;
+}
+
+/* 3. ETIQUETA DE DÍAS (Badge) */
+.days-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: #ff5722; /* Naranja fuerte */
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.7em;
+    font-weight: bold;
+    z-index: 5;
+}
+
+/* 4. DETALLES DEL PAQUETE */
+.package-details {
+    padding: 10px 15px 15px 15px;
+}
+
+.package-type {
+    font-size: 0.75em;
+    color: #555;
+    margin-bottom: 3px;
+    font-weight: 600;
+}
+
+.package-details h3 {
+    font-size: 1.1em;
+    margin: 0 0 8px 0;
+    font-weight: 700;
+}
+
+/* Rating y Estrellas */
+.rating {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+}
+.rating .score {
+    background-color: #007bff;
+    color: white;
+    padding: 2px 5px;
+    border-radius: 3px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-right: 5px;
+}
+.rating .stars {
+    color: #ffc107; /* Color amarillo para las estrellas */
+    font-size: 0.9em;
+}
+
+.itinerary-detail {
+    font-size: 0.8em;
+    color: #777;
+    margin: 3px 0;
+}
+
+/* Botón de Oferta Imbatible */
+.offer-button {
+    background-color: #28a745; /* Verde */
+    color: white;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 0.8em;
+    font-weight: bold;
+    margin-top: 10px;
+    cursor: pointer;
+    width: 100%;
+}
+
+/* Sección de Precios */
+.price-section {
+    border-top: 1px solid #eee;
+    padding-top: 10px;
+    margin-top: 15px;
+}
+
+.price-label {
+    font-size: 0.7em;
+    color: #777;
+    margin: 0;
+}
+
+.price {
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #ff5722; /* Naranja/Rojo de acción */
+    margin: 0;
+}
+
+.taxes-info {
+    font-size: 0.65em;
+    color: #999;
+    margin-top: 2px;
+}
+
+/* 5. ESTILOS DE LAS FLECHAS DE NAVEGACIÓN */
+.carousel-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.7); /* Fondo oscuro semitransparente */
+    color: white;
+    border: none;
+    cursor: pointer;
+    z-index: 10;
+    font-size: 1.5em;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+}
+
+.carousel-arrow:hover {
+    background: rgba(0, 0, 0, 0.9);
+}
+
+/* Posicionamiento de las flechas */
+.left-arrow {
+    left: -20px; 
+}
+
+.right-arrow {
+    right: -20px; 
+}
+
+
+/* ===================================================================
+   MEDIA QUERIES (RESPONSIVE)
+   =================================================================== */
+
+@media (max-width: 1024px) {
+    /* Mostrar 3 tarjetas en tablets grandes */
+    .package-card {
+        width: calc((100% - 40px) / 3); 
+    }
+}
+
+@media (max-width: 768px) {
+    /* Mostrar 2 tarjetas en tablets pequeñas */
+    .package-card {
+        width: calc((100% - 20px) / 2); 
+    }
+}
+
+@media (max-width: 600px) {
+    /* Mostrar 1 tarjeta grande en móviles */
+    .package-card {
+        width: 100%; 
+        max-width: 300px;
+        margin: 0 auto;
+    }
+    .carousel-track {
+        justify-content: flex-start;
+        padding: 10px 15px; /* Padding a los lados para que se vea el deslizamiento */
+        overflow-x: scroll; /* Habilitar scroll manual en móvil */
+    }
+    /* Ocultar flechas en móvil si el scroll manual es suficiente */
+    .carousel-arrow {
+        display: none !important; 
+    }
+}
 
 /* ===================================================================
    MEDIA QUERIES (RESPONSIVE) - Modificado para mantener la alineación horizontal
@@ -570,4 +791,6 @@ body {
     .search-box-container {
         padding: 20px;
     }
+
+
 }
