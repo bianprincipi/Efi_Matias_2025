@@ -1,0 +1,56 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Aerolínea{% endblock %}</title>
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+</head>
+<body>
+
+    <header class="main-header">
+        
+        <div class="container header-top-bar">
+            <div class="logo">
+                <a href="{% url 'flights:index' %}" class="logo-link">
+                    <span class="logo-text">Sistema de Aerolínea</span>
+                </a>
+            </div>
+            
+            <nav class="user-nav">
+                <a href="#" class="nav-item">👤 Iniciar Sesión</a>
+                <a href="#" class="nav-item">🛒 Carrito</a>
+            </nav>
+        </div>
+
+        <div class="header-service-bar">
+            <div class="container">
+                <nav>
+                    <a href="{% url 'flights:index' %}" class="service-icon active">
+                        <span class="icon">✈️</span> Vuelos
+                    </a>
+                    <a href="#" class="service-icon">
+                        <span class="icon">🏨</span> Alojamientos
+                    </a>
+                    <a href="#" class="service-icon">
+                        <span class="icon">📦</span> Paquetes
+                    </a>
+                    <a href="#" class="service-icon">
+                        <span class="icon">🚗</span> Autos
+                    </a>
+                    <a href="#" class="service-icon">
+                        <span class="icon">🌍</span> Mis Viajes
+                    </a>
+                </nav>
+            </div>
+        </div>
+
+    </header>
+    
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+</body>
+</html>

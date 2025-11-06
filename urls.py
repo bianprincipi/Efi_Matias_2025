@@ -7,6 +7,8 @@ from rest_framework_simplejwt.views import (
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
+from django.views.generic.base import RedirectView
+from django.contrib.auth import views as auth_views
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -22,10 +24,14 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
+    path('', RedirectView.as_view(url='flights/', permanent=True), name='index_redirect'),
     path('admin/', admin.site.urls),
 
     #conecta lasa urls de la aplicacion fligths
     path('flights/', include('flights.urls')),
+
+    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
+    path('logout/', auth_views.LogoutView.as_view(next_page='/flights/'), name='logout'),
 
     #endpoints de autenticacion jwt
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
