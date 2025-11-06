@@ -54,21 +54,40 @@ body {
 
 /* Barra de Servicios/Pestañas (Vuelos, Hoteles, Paquetes) */
 .header-service-bar {
-    display: flex;
-    justify-content: flex-start;
     border-top: 1px solid #eee;
 }
 
+/* --- SOLUCIÓN: ALINEACIÓN HORIZONTAL --- */
+.header-service-bar nav {
+    /* Esta es la regla clave: Hace que los íconos se alineen horizontalmente */
+    display: flex; 
+    justify-content: center; /* Centra los íconos en la barra */
+    padding: 10px 0;
+    width: 100%;
+}
+
 .service-icon {
+    /* Esto apila el emoji y el texto verticalmente dentro de cada ícono */
     display: flex;
-    flex-direction: column;
+    flex-direction: column; 
     align-items: center;
+    text-align: center;
+    
     padding: 10px 15px;
+    min-width: 60px; /* Dando un ancho mínimo para espaciar */
+    
     text-decoration: none;
     color: #333;
     font-size: 0.8em;
+    font-weight: 500;
+    
     border-bottom: 3px solid transparent;
     transition: border-bottom 0.2s, color 0.2s;
+}
+
+.service-icon .icon {
+    font-size: 24px;
+    margin-bottom: 3px;
 }
 
 .service-icon.active {
@@ -81,7 +100,10 @@ body {
     color: #007bff;
 }
 
-/* Media Query para Header Responsive */
+/* ===================================================================
+   MEDIA QUERIES (RESPONSIVE)
+   =================================================================== */
+
 @media (max-width: 768px) {
     .header-top-bar {
         flex-direction: column;
@@ -91,7 +113,9 @@ body {
         margin-top: 10px;
         padding-bottom: 10px;
     }
-    .header-service-bar {
+    /* Mantenemos el scroll horizontal en móviles si hay muchos iconos */
+    .header-service-bar nav { 
+        justify-content: flex-start; /* Alinea a la izquierda para scroll */
         overflow-x: auto;
         white-space: nowrap;
         padding-bottom: 5px;
@@ -100,6 +124,30 @@ body {
         padding: 8px 10px;
         min-width: 60px;
     }
+    
+    /* Reglas específicas para el panel de administración */
+    .admin-dashboard-container {
+        padding: 10px;
+        margin: 20px auto;
+    }
+
+    .quick-links-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    /* Ocultar algunos elementos del header en móvil si es necesario */
+    .user-nav { display: none; }
+}
+
+@media (max-width: 600px) {
+    /* Reglas específicas para las listas de vuelos */
+    .flight-list {
+        grid-template-columns: 1fr;
+    }
+
+    .search-box-container {
+        padding: 20px;
+    }
 }
 
 /* ===================================================================
@@ -107,27 +155,74 @@ body {
    =================================================================== */
 
 .hero-section {
-    /* Fondo con imagen, debes cambiar la URL si no está cargada */
+    /* ... reglas de background ... */
     background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('https://i.pinimg.com/1200x/e3/d5/a4/e3d5a4d0965f54ae8a5ee7ad44310daa.jpg') no-repeat center center;
     background-size: cover;
-    height: 40vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    
+    /* Padding para definir la altura visual de la imagen y centrar el contenido */
+    padding: 30px 0 80px 0; 
+    
+    /* 1. Habilitar Flexbox */
+    display: flex; 
+    
+    /* 2. Apilamiento Vertical (Título encima del Formulario) */
+    flex-direction: column; 
+    
+    /* 3. Centrado Vertical (Posiciona el bloque en el medio del padding) */
+    justify-content: center; 
+    
+    /* 4. Centrado Horizontal (Posiciona el bloque en el centro del ancho) */
+    align-items: center; 
+    
     color: white;
     text-align: center;
     position: relative;
-    margin-bottom: 0;
+    margin-bottom: 0; 
+}
+
+.hero-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centra los elementos internos (h1 y wrapper) */
+    width: 100%; /* Asegura que ocupe el ancho disponible */
+    max-width: 1000px; /* Limita el ancho del contenido si es muy ancho */
+    padding: 0 20px; /* Espaciado a los lados */
+}
+
+.hero-section h1 {
+    font-size: 2.5em;
+    color: white; 
+    z-index: 1;
+    
+    /* Espacio entre el título y el formulario */
+    margin-bottom: 25px; 
+    margin-top: 0; /* Asegura que el título no tenga un margen superior que lo empuje */
 }
 
 /* Contenedor que maneja la subida de la tarjeta */
+.search-box-container {
+    background-color: #ffffff;
+    padding: 25px 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+    max-width: 900px;
+    width: 90%;
+    border-top: 5px solid #ff5722;
+}
+
+/* Contenedor que maneja la tarjeta de búsqueda */
 .search-box-wrapper {
-    position: relative;
-    top: 0;
-    width: 100%;
-    /* CLAVE PARA LA FLOTACIÓN: VALOR NEGATIVO */
-    margin-top: -120px; /* Manteniendo el valor que querías para flotar */
+    position: static; 
+    margin-top: 0;
     z-index: 10;
+    
+    /* Ancho máximo y método de centrado CLÁSICO INFALIBLE */
+    width: 90%; 
+    max-width: 1000px;
+    margin-left: auto; /* Centra el elemento en el espacio restante */
+    margin-right: auto;
+    
+    /* Se elimina display: flex; y justify-content: center; para evitar conflictos */
 }
 
 /* Estilos de la tarjeta de búsqueda (Reemplaza .search-container en tu HTML por .search-box-container) */
@@ -353,10 +448,96 @@ body {
 }
 
 /* ===================================================================
-   MEDIA QUERIES (RESPONSIVE)
+   HEADER (Alineación corregida y centralizada)
+   =================================================================== */
+
+/* Barra de Servicios/Pestañas (Vuelos, Hoteles, Paquetes) */
+/* Contenedor principal de toda la barra (se mantiene para el borde superior si aplica) */
+.header-service-bar {
+    /* Si tienes un borde aquí, se mantendrá */
+    border-top: 1px solid #eee;
+}
+
+/* 1. CONTENEDOR DE ICONOS: Alineación Horizontal (nav) */
+/* **Esta es la regla CLAVE para que los íconos estén uno al lado del otro.** */
+.header-service-bar nav {
+    display: flex; 
+    justify-content: center; /* Centra el grupo de íconos horizontalmente */
+    padding: 10px 0;
+    width: 100%;
+}
+
+/* 2. ÍCONO INDIVIDUAL: Alineación Vertical (Emoji sobre Texto) */
+.service-icon {
+    display: flex; /* Correcto para apilar Emoji y Texto */
+    flex-direction: column; /* Correcto para apilar Emoji y Texto */
+    align-items: center;
+    text-align: center;
+    
+    /* Controla el espaciado horizontal */
+    padding: 10px 15px; 
+    min-width: 60px; /* Evita que el ícono se estire o se rompa */
+    
+    /* Otros estilos... */
+    text-decoration: none;
+    color: #333;
+    font-size: 0.8em;
+    font-weight: 500;
+}
+
+.service-icon.active {
+    color: #007bff;
+    border-bottom-color: #007bff;
+    font-weight: bold;
+}
+
+.service-icon:not(.active):hover {
+    color: #007bff;
+}
+
+.service-icon .icon {
+    font-size: 24px;
+    margin-bottom: 3px;
+}
+
+/* Las reglas redundantes (.service-nav, .service-icon img/span) fueron eliminadas o consolidadas. */
+
+
+/* ===================================================================
+   MEDIA QUERIES (RESPONSIVE) - Modificado para mantener la alineación horizontal
    =================================================================== */
 
 @media (max-width: 768px) {
+    
+    .header-top-bar {
+        flex-direction: column;
+        text-align: center;
+    }
+    .user-nav {
+        margin-top: 10px;
+        padding-bottom: 10px;
+    }
+    
+    /* La nav principal en móvil - permite scroll horizontal si hay muchos íconos */
+    .header-service-bar nav { 
+        justify-content: flex-start; /* Alinea a la izquierda para scroll */
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 5px;
+    }
+    
+    .header-service-bar .container nav {
+        display: flex !important;
+        justify-content: center;
+        padding: 10px 0;
+        width: 100%;
+    }
+
+    .service-icon {
+        padding: 8px 10px;
+        min-width: 60px;
+    }
+    
     /* Reglas específicas para el panel de administración */
     .admin-dashboard-container {
         padding: 10px;
@@ -369,6 +550,15 @@ body {
 
     /* Ocultar algunos elementos del header en móvil si es necesario */
     .user-nav { display: none; }
+
+    .hero-section h1 {
+        font-size: 1.8em;
+        margin-bottom: 15px;
+    }
+    .hero-section {
+        height: 50vh; /* Puedes aumentar la altura en móvil si el formulario es grande */
+        padding-top: 60px; /* Un poco de padding arriba */
+    }
 }
 
 @media (max-width: 600px) {
