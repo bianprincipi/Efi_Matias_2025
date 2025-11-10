@@ -1,0 +1,122 @@
+{% extends "base.html" %} 
+
+{% block title %}Iniciar Sesión - Aerolínea{% endblock %}
+
+{% block content %}
+<div style="max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+    <h2 style="text-align: center; margin-bottom: 20px;">Acceso al Sistema</h2>
+    
+    <div id="login_form_container">
+        <label for="login_username">Usuario:</label>
+        <input type="text" id="login_username" placeholder="Nombre de usuario" required style="width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box;">
+        
+        <label for="login_password">Contraseña:</label>
+        <input type="password" id="login_password" placeholder="Contraseña" required style="width: 100%; padding: 10px; margin-bottom: 20px; box-sizing: border-box;">
+        
+        <button id="login_button" style="width: 100%; padding: 10px; background-color: #28a745; color: white; border: none; border-radius: 5px; cursor: pointer;">Ingresar</button> 
+        
+        <p id="login_message" style="color: red; text-align: center; margin-top: 15px;"></p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const loginButton = document.getElementById('login_button');
+
+    if (loginButton) {
+        loginButton.addEventListener('click', async function() {
+            const username = document.getElementById('login_username').value;
+            const password = document.getElementById('login_password').value;
+            const messageDisplay = document.getElementById('login_message');
+            
+            messageDisplay.textContent = 'Procesando...';
+            messageDisplay.style.color = 'black'; 
+
+            if (!username || !password) {
+                messageDisplay.style.color = 'red';
+                messageDisplay.textContent = 'Por favor, ingrese usuario y contraseña.';
+                return;
+            }
+
+            // 1. OBTENER TOKEN (Llamada al endpoint JWT)
+            const API_URL = 'http://127.0.0.1:8000/api/token/';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        password: password
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Éxito: Guardar los tokens
+                    localStorage.setItem('access_token', data.access);
+                    localStorage.setItem('refresh_token', data.refresh);
+                    
+                    messageDisplay.textContent = 'Verificando perfil y permisos...'; 
+
+                    // 2. OBTENER PERFIL (Llamada al nuevo endpoint de la app flights)
+                    const profileResponse = await fetch('http://127.0.0.1:8000/flights/api/profile/', {
+                        method: 'GET',
+                        headers: {
+                            'Authorization': `Bearer ${data.access}` 
+                        }
+                    });
+
+                    if (profileResponse.ok) {
+                        const profileData = await profileResponse.json();
+                        
+                        // Guardamos el estado de Admin
+                        localStorage.setItem('is_admin', profileData.is_staff); 
+                        
+                        messageDisplay.style.color = 'green';
+                        
+                        // 3. LÓGICA DE REDIRECCIÓN BASADA EN EL ROL (is_staff)
+                        if (profileData.is_staff === true) {
+                            messageDisplay.textContent = '¡Bienvenido Administrador! Redirigiendo a Dashboard...';
+                            // Redirige al Dashboard de Administrador
+                            window.location.href = '/flights/dashboard/'; 
+                        } else {
+                            messageDisplay.textContent = '¡Bienvenido Pasajero! Redirigiendo a inicio...';
+                            // Redirige a la página principal del pasajero
+                            window.location.href = '/flights/'; 
+                        }
+
+                    } else {
+                        // Fallo al obtener perfil (pero el token es válido)
+                        messageDisplay.style.color = 'orange';
+                        messageDisplay.textContent = 'Login exitoso, pero no se pudo obtener el perfil. Redirigiendo...';
+                        window.location.href = '/flights/';
+                    }
+
+
+                } else {
+                    // Fallo de Login (Ej: 401 Unauthorized)
+                    let errorMessage = 'Error de credenciales. No active account found.';
+                    if (data.detail) {
+                        errorMessage = data.detail; 
+                    }
+                    messageDisplay.style.color = 'red';
+                    messageDisplay.textContent = errorMessage;
+                }
+
+            } catch (error) {
+                // Fallo de conexión o red
+                console.error('Error de conexión:', error);
+                messageDisplay.style.color = 'red';
+                messageDisplay.textContent = 'No se pudo conectar al servidor. Verifique que Django esté corriendo.';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
