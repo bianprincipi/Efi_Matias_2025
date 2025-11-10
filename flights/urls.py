@@ -32,6 +32,13 @@ urlpatterns = [
     
     # DASHBOARD DE ADMINISTRADOR WEB
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
+
+    # NUEVAS RUTAS DE GESTIÓN (Usando las rutas fijas del HTML)
+    path('dashboard/vuelos/', views.manage_flights, name='manage_flights'),
+    path('dashboard/reservas/', views.manage_reservations, name='manage_reservations'),
+    path('dashboard/aviones/', views.manage_aircrafts, name='manage_aircrafts'),
+    path('dashboard/pasajeros/', views.manage_passengers, name='manage_passengers'),
+    path('dashboard/usuarios/', views.manage_users, name='manage_users'),
     
     # RUTAS DE DETALLE WEB (Correctas sin el prefijo 'flights/')
     path('<int:flight_id>/', views.flight_detail, name='flight_detail'), # Detalle de Vuelo (Ej: /flights/42/)
