@@ -8,7 +8,13 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from django.views.generic.base import RedirectView
-from django.contrib.auth import views as auth_views
+
+# Importación necesaria para cargar solo la plantilla HTML
+from django.views.generic import TemplateView
+
+# Nota: Eliminé la importación 'from django.contrib.auth import views as auth_views' 
+# ya que no usaremos su lógica de login/logout basada en sesión.
+
 
 schema_view = get_schema_view(
     openapi.Info(
@@ -30,15 +36,20 @@ urlpatterns = [
     # conecta las urls de la aplicacion fligths
     path('flights/', include('flights.urls')),
 
-    path('login/', auth_views.LoginView.as_view(template_name='login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='/flights/'), name='logout'),
+    # RUTA DE LOGIN CORREGIDA: Simplemente carga la plantilla login.html.
+    # El JavaScript dentro de esa plantilla manejará la autenticación JWT.
+    path('login/', TemplateView.as_view(template_name='login.html'), name='login'),
+    
+    # El logout se maneja completamente en el frontend (base.html) eliminando el token.
+    # Dejamos esta ruta solo si tienes otra lógica de backend que necesite limpiarse:
+    # path('logout/', auth_views.LogoutView.as_view(next_page='/flights/'), name='logout'), 
 
-    # endpoints de autenticacion jwt
+    # endpoints de autenticacion jwt (ESTOS SON LOS QUE USA EL JAVASCRIPT)
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # rutas de documentacion swagger/redoc
-    path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'), # <-- CORREGIDO EN DRF_YASG
+    path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'), 
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]

@@ -8,7 +8,8 @@ from .views import (
     ReservationViewSet, 
     AircraftViewSet,
     TicketViewSet,
-    SearchFlightsAPIView # <-- 1. IMPORTACIÓN DE LA NUEVA VISTA API
+    SearchFlightsAPIView, # <-- 1. IMPORTACIÓN DE LA NUEVA VISTA API
+    UserProfileAPIView
 ) 
 from rest_framework import routers
 
@@ -39,6 +40,9 @@ urlpatterns = [
     path('ticket/<int:ticket_id>/', views.ticket_detail, name='ticket_detail'),
 
     # RUTAS API REST
+    
+    # ENDPOINT DE PERFIL (Permite diferenciar Admin/Pasajero)
+    path('api/profile/', UserProfileAPIView.as_view(), name='api_profile'),
     
     # 2. ENDPOINT DE BÚSQUEDA API DEDICADO
     # Ejemplo de uso en Postman: /api/vuelos/buscar/?origin=BUE&destination=COR

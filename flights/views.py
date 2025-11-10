@@ -18,12 +18,15 @@ from .serializers import (
     ReservationSerializer, 
     AircraftSerializer,
     SeatSerializer,
-    TicketSerializer    
+    TicketSerializer,
+    UserProfileSerializer  
 ) 
 import uuid #generar codigo de barras
 from .services.ticket_servide import TicketService
 from django.contrib.admin.views.decorators import staff_member_required
 import random
+from .permissions import IsAirlineAdmin
+from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticated
 
 
 # =======================================================================================
@@ -244,6 +247,22 @@ class VueloViewSet(viewsets.ModelViewSet):
             "pasajeros": serializer.data
         })
 
+# =========================================================
+# Nueva Vista API para obtener el Perfil del Usuario
+# =========================================================
+class UserProfileAPIView(APIView):
+    """
+    Vista protegida (requiere token JWT) que devuelve el perfil del 
+    usuario autenticado, incluyendo su estado de is_staff.
+    Endpoint: /flights/api/profile/
+    """
+    # Requiere que el usuario esté logueado (tenga un token JWT válido)
+    permission_classes = [IsAuthenticated] 
+
+    def get(self, request):
+        # request.user es el usuario autenticado gracias al token JWT
+        serializer = UserProfileSerializer(request.user)
+        return Response(serializer.data)
 
 class PassengerViewSet(viewsets.ModelViewSet):
     """

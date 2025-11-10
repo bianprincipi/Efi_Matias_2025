@@ -4,6 +4,7 @@ from .models import (
 )
 from .services.reservation_services import ReservationService
 from django.core.exceptions import ValidationError
+from django.contrib.auth.models import User
 
 class AircraftDetailSerializer(serializers.ModelSerializer):
     """Serializador simple para mostrar información del Avión asignado."""
@@ -143,3 +144,16 @@ class TicketSerializer(serializers.ModelSerializer):
             'flight_number', 'seat_number'
         ]
         read_only_fields = fields 
+
+# =========================================================
+# Nuevo Serializer para el Perfil de Usuario (Login Diferenciado)
+# =========================================================
+class UserProfileSerializer(serializers.ModelSerializer):
+    """
+    Devuelve la información del usuario autenticado, 
+    incluyendo el estado crucial de 'is_staff'.
+    """
+    class Meta:
+        model = User
+        fields = ('id', 'username', 'email', 'is_staff')
+        read_only_fields = ('username', 'email', 'is_staff')
