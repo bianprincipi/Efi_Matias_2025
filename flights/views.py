@@ -326,6 +326,20 @@ class ReservationViewSet(viewsets.GenericViewSet,
             # Requiere Admin para el resto (list, update, destroy si los incluyeras)
             permission_classes = [IsAirlineAdmin] 
         return [permission() for permission in permission_classes]
+    
+    def perform_create(self, serializer):
+        # Asigna el usuario que está autenticado a través del token JWT
+        # Nota: Asume que tu modelo Reservation tiene un campo 'user' o 'passenger' que es un ForeignKey.
+        # Si tienes un campo 'user' (Foreign Key al modelo User):
+        serializer.save(user=self.request.user) 
+        
+        # Si tienes un campo 'passenger' (Foreign Key a tu modelo Passenger) y quieres obtener el objeto Passenger
+        # asociado al User logueado (si tienes un modelo Passenger asociado 1 a 1 con User):
+        # try:
+        #     passenger_instance = Passenger.objects.get(user=self.request.user)
+        #     serializer.save(passenger=passenger_instance)
+        # except Passenger.DoesNotExist:
+        #     raise Exception("No se encontró un perfil de Pasajero asociado al usuario logueado.")
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -381,12 +395,15 @@ class AircraftViewSet(viewsets.ModelViewSet):
     serializer_class = AircraftSerializer
     
     def get_permissions(self):
-        # Permite list, retrieve y las acciones a cualquiera.
-        if self.action in ['list', 'retrieve', 'layout', 'disponibilidad']:
-            permission_classes = [AllowAny]
+        # Permite crear la reserva SOLO si está autenticado (con token JWT)
+        if self.action == 'create':
+            permission_classes = [IsAuthenticated]
+        # Permite ver el detalle a cualquiera
+        elif self.action == 'retrieve':
+             permission_classes = [AllowAny]
         else:
-            # Requiere Admin para: create, update, destroy
-            permission_classes = [IsAirlineAdmin]
+            # Requiere Admin para el resto (list, update, destroy si los incluyeras)
+            permission_classes = [IsAirlineAdmin] 
         return [permission() for permission in permission_classes]
 
     @action(detail=True, methods=['get'], permission_classes=[AllowAny])
