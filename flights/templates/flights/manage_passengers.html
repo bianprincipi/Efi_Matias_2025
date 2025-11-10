@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5 pt-5">
+    
+    <h2>📊 {{ page_title }}</h2>
+    <p class="lead">Esta página listará todos los {{ item_type }} del sistema.</p>
+    
+    <a href="/flights/dashboard/" class="btn btn-secondary mb-3">
+        ⬅️ Volver al Panel de Control
+    </a>
+
+    <div class="alert alert-warning">
+        Contenido de la tabla para {{ item_type }} pendiente de implementación.
+    </div>
+
+</div>
+{% endblock %}

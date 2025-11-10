@@ -4,12 +4,12 @@ from django.contrib import messages
 from django.core.exceptions import ValidationError
 from .forms import FlightSearchForm, ReservationForm
 from rest_framework import viewsets, filters, mixins
-from .permissions import IsAirlineAdmin # <-- TU PERMISO PERSONALIZADO
+from .permissions import IsAirlineAdmin     
 from rest_framework.permissions import IsAdminUser, AllowAny
 from rest_framework.decorators import action 
 from rest_framework.response import Response 
 from rest_framework import status 
-from rest_framework.views import APIView # <-- Importado para la nueva vista de búsqueda
+from rest_framework.views import APIView 
 from django_filters.rest_framework import DjangoFilterBackend  
 from .models import Flight, Passenger, Reservation, Seat, Ticket, Aircraft 
 from .serializers import (
@@ -27,7 +27,10 @@ from django.contrib.admin.views.decorators import staff_member_required
 import random
 from .permissions import IsAirlineAdmin
 from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticated
+from django.shortcuts import render
+from django.contrib.auth import get_user_model
 
+User = get_user_model()
 
 # =======================================================================================
 # 1. VISTAS TRADICIONALES DE DJANGO (Retornan HTML para el Front-end)
@@ -172,6 +175,72 @@ def admin_dashboard(request):
     }
     return render(request, 'flights/admin_dashboard.html', context)
 
+
+@staff_member_required
+def manage_flights(request):
+    """
+    Lista todos los vuelos del sistema.
+    """
+    all_flights = Flight.objects.all().order_by('-departure_time')
+    context = {
+        'page_title': 'Gestión de Vuelos',
+        'flights': all_flights,
+        # 'create_url': '/flights/dashboard/vuelos/crear/'  # Ejemplo para futuros botones
+    }
+    return render(request, 'flights/manage_flights.html', context) # Debes crear manage_flights.html
+
+@staff_member_required
+def manage_reservations(request):
+    """
+    Lista todas las reservas del sistema con detalles precargados.
+    """
+    all_reservations = Reservation.objects.all().select_related(
+        'flight', 
+        'passenger', 
+        'seat'
+    ).order_by('-booking_date')
+
+    context = {
+        'page_title': 'Gestión de Reservas',
+        'reservations': all_reservations,
+    }
+    return render(request, 'flights/manage_reservations.html', context) # Debes crear manage_reservations.html
+
+@staff_member_required
+def manage_aircrafts(request):
+    """
+    Lista todos los aviones/aeronaves del sistema.
+    """
+    all_aircrafts = Aircraft.objects.all().order_by('model_name')
+    context = {
+        'page_title': 'Gestión de Aviones',
+        'aircrafts': all_aircrafts,
+    }
+    return render(request, 'flights/manage_aircrafts.html', context) # Debes crear manage_aircrafts.html
+
+@staff_member_required
+def manage_passengers(request):
+    """
+    Lista todos los perfiles de pasajeros (diferentes del User normal si tienes un modelo Passenger).
+    """
+    all_passengers = Passenger.objects.all().order_by('last_name')
+    context = {
+        'page_title': 'Gestión de Pasajeros',
+        'passengers': all_passengers,
+    }
+    return render(request, 'flights/manage_passengers.html', context) # Debes crear manage_passengers.html
+
+@staff_member_required
+def manage_users(request):
+    """
+    Lista todos los usuarios (incluyendo clientes y staff).
+    """
+    all_users = User.objects.all().order_by('date_joined')
+    context = {
+        'page_title': 'Gestión de Cuentas de Usuario',
+        'users': all_users,
+    }
+    return render(request, 'flights/manage_users.html', context) # Debes crear manage_users.html
 
 # =======================================================================================
 # 2. VISTAS DE DJANGO REST FRAMEWORK (Retornan JSON para la API)

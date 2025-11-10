@@ -7,24 +7,74 @@
         <p class="user-greeting">Bienvenido, {{ request.user.username }}. Gestiona tu aerolínea eficientemente.</p>
     </header>
 
-    <div class="quick-links-section">
-        <h2>🛠️ Accesos Rápidos</h2>
-        <div class="quick-links-grid">
-            <a href="{% url 'admin:index' %}" class="card admin-link-card">
-                <h3><span class="emoji">⚙️</span> Gestión de Modelos (CRUD)</h3>
-                <p>Crea, edita o elimina Vuelos, Pasajeros, Aviones, etc. (Django Admin).</p>
-            </a>
-            <a href="/swagger/" class="card admin-link-card">
-                <h3><span class="emoji">🔗</span> Pruebas de API (Swagger)</h3>
-                <p>Documentación interactiva para probar los endpoints REST.</p>
-            </a>
-            <a href="{% url 'flights:index' %}">
-                <span class="emoji">🌍</span> Sitio Web Público
-            </a>
-        </div>
-    </div>
+    <h2>🛠️ Accesos Rápidos</h2>
+    <h3 class="mt-4 mb-3 text-secondary border-bottom pb-2">⚙️ Gestión del Sistema</h3>
 
-    <div class="management-section">
+    <div class="row"> 
+        
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <a href="/flights/dashboard/vuelos/" class="card-link-card text-decoration-none text-dark"> 
+                    <div class="card-body text-center">
+                        <span class="h1 d-block text-primary"><i class="fas fa-plane"></i></span>
+                        <h5 class="card-title mt-2">Vuelos</h5>
+                        <p class="text-muted small">Crear, editar o eliminar rutas y horarios.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <a href="/flights/dashboard/reservas/" class="card-link-card text-decoration-none text-dark">
+                    <div class="card-body text-center">
+                        <span class="h1 d-block text-success"><i class="fas fa-ticket-alt"></i></span>
+                        <h5 class="card-title mt-2">Reservas y Boletos</h5>
+                        <p class="text-muted small">Revisar, confirmar o cancelar reservas de clientes.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <a href="/flights/dashboard/aviones/" class="card-link-card text-decoration-none text-dark">
+                    <div class="card-body text-center">
+                        <span class="h1 d-block text-info"><i class="fas fa-helicopter"></i></span>
+                        <h5 class="card-title mt-2">Aviones y Asientos</h5>
+                        <p class="text-muted small">Configurar modelos de aeronaves y sus layouts.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <a href="/flights/dashboard/pasajeros/" class="card-link-card text-decoration-none text-dark">
+                    <div class="card-body text-center">
+                        <span class="h1 d-block text-warning"><i class="fas fa-users"></i></span>
+                        <h5 class="card-title mt-2">Pasajeros</h5>
+                        <p class="text-muted small">Ver y administrar perfiles de pasajeros.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <a href="/flights/dashboard/usuarios/" class="card-link-card text-decoration-none text-dark">
+                    <div class="card-body text-center">
+                        <span class="h1 d-block text-danger"><i class="fas fa-user-tie"></i></span>
+                        <h5 class="card-title mt-2">Cuentas de Usuario</h5>
+                        <p class="text-muted small">Administración de staff y perfiles de clientes.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+    </div>
+    
+    <div class="management-section mt-5">
         <h2>📊 Gestión de Recursos (API)</h2>
         <p>Funcionalidades críticas accesibles vía API o Django Admin:</p>
         <ul class="management-list">
