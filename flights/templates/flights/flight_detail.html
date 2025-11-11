@@ -6,291 +6,224 @@
 {% block content %}
 
 <style>
-    /* Estilos básicos para el plano de asientos */
-    .seat-map {
-        background: #f8f8f8;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        margin-bottom: 20px;
-    }
-    .seat-row {
-        display: flex;
-        justify-content: center;
-        margin-bottom: 10px;
-    }
-    .seat {
-        width: 35px;
-        height: 35px;
-        line-height: 35px;
-        text-align: center;
-        margin: 0 5px;
-        border-radius: 5px;
-        font-size: 0.8em;
-        cursor: pointer;
-        border: 1px solid #ccc;
-        transition: all 0.2s;
-        position: relative;
-    }
-    .seat.reserved {
-        background-color: #dc3545; /* Rojo */
-        color: white;
-        cursor: not-allowed;
-    }
-    .seat.available {
-        background-color: #28a745; /* Verde */
-        color: white;
-    }
-    .seat input[type="radio"] {
-        opacity: 0;
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        cursor: pointer;
-    }
-    /* Estilo para el asiento seleccionado (solo visual) */
-    .seat input[type="radio"]:checked + label {
-        background-color: #007bff; /* Azul al seleccionar */
-        color: white;
-        border-color: #007bff;
-        transform: scale(1.1);
-    }
-    .seat label {
-        display: block;
-        width: 100%;
-        height: 100%;
-        line-height: 35px;
-        cursor: inherit;
-    }
-    .aisle {
-        width: 30px; 
-        text-align: center;
-        color: #999;
-    }
+  .seat-map { background: #f8f8f8; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+  .seat-row { display: flex; justify-content: center; margin-bottom: 10px; }
+  .seat { width: 35px; height: 35px; line-height: 35px; text-align: center; margin: 0 5px; border-radius: 5px; font-size: 0.8em; cursor: pointer; border: 1px solid #ccc; transition: all 0.2s; position: relative; }
+  .seat.reserved { background-color: #dc3545; color: white; cursor: not-allowed; }
+  .seat.available { background-color: #28a745; color: white; }
+  .seat input[type="radio"] { opacity: 0; position: absolute; width: 100%; height: 100%; cursor: pointer; }
+  .seat input[type="radio"]:checked + label { background-color: #007bff; color: white; border-color: #007bff; transform: scale(1.1); }
+  .seat label { display: block; width: 100%; height: 100%; line-height: 35px; cursor: inherit; }
+  .aisle { width: 30px; text-align: center; color: #999; }
 </style>
 
-
 <div class="container mt-5 pt-5">
-    
-    <div class="row">
-        
-        <div class="col-md-5">
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <h2 class="card-title text-primary">{{ flight.origin }} ➡️ {{ flight.destination }}</h2>
-                    <p class="text-muted">Vuelo {{ flight.flight_number }}</p>
-                    <hr>
-                    
-                    <p><strong>Salida:</strong> {{ flight.departure_time|date:"d/m/Y H:i" }}</p>
-                    <p><strong>Llegada:</strong> {{ flight.arrival_time|date:"d/m/Y H:i" }}</p>
-                    <p><strong>Aeronave:</strong> {{ aircraft.model }}</p>
-                    <p><strong>Precio:</strong> <span class="text-success h4">${{ flight.price|floatformat:2 }}</span></p>
-                </div>
-            </div>
-            
-            <div class="card shadow-sm">
-                <div class="card-body">
-                    <h4 class="card-title">Confirmar Reserva</h4>
-                    
-                    <form method="POST" action="{% url 'flight_detail' flight_id=flight.id %}">
-                        {% csrf_token %}
-                        
-                        <input type="hidden" name="flight" value="{{ flight.id }}">
+  <!-- Meta del avión para JS -->
+  <div id="aircraft-meta" data-aircraft-id="{{ aircraft.id }}"></div>
 
-                        <input 
-                            type="hidden" 
-                            name="{{ form.seat.name }}" 
-                            id="id_seat" 
-                            value="{{ form.seat.value|default:'' }}"
-                        >
-
-                        <div class="mb-3">
-                            <label for="{{ form.passenger.id_for_label }}" class="form-label">Selecciona Pasajero</label>
-                            {{ form.passenger }}
-                            {% if form.passenger.errors %}<div class="text-danger small">{{ form.passenger.errors }}</div>{% endif %}
-                        </div>
-
-                        <button type="submit" class="search-button w-100 mt-3">
-                            Completar Reserva
-                        </button>
-                        
-                        {% if form.seat.errors %}
-                            <div class="alert alert-danger mt-2">Asiento: {{ form.seat.errors }}</div>
-                        {% endif %}
-                    </form>
-                </div>
-            </div>
+  <div class="row">
+    <!-- Columna izquierda: info de vuelo + formulario -->
+    <div class="col-md-5">
+      <div class="card shadow-sm mb-4">
+        <div class="card-body">
+          <h2 class="card-title text-primary">{{ flight.origin }} ➡️ {{ flight.destination }}</h2>
+          <p class="text-muted">Vuelo {{ flight.flight_number }}</p>
+          <hr>
+          <p><strong>Salida:</strong> {{ flight.departure_time|date:"d/m/Y H:i" }}</p>
+          <p><strong>Llegada:</strong> {{ flight.arrival_time|date:"d/m/Y H:i" }}</p>
+          <p><strong>Aeronave:</strong> {{ aircraft.model_name|default:aircraft.model }}</p>
+          <p><strong>Precio:</strong> <span class="text-success h4">${{ flight.price|floatformat:2 }}</span></p>
         </div>
+      </div>
 
-        <div class="col-md-7">
-            <h3>Selecciona tu Asiento</h3>
-            
-            <div class="seat-map text-center">
-                <p class="text-secondary">Selecciona un asiento disponible (verde)</p>
-                
-                {% for row_number, seats in seats_by_row.items %}
-                    <div class="seat-row">
-                        <span class="aisle">{{ row_number }}</span>
-                        
-                        {% for seat_data in seats %}
-                            {% with seat=seat_data.object %}
-                                <div 
-                                    class="seat {% if seat_data.is_reserved %}reserved{% else %}available{% endif %}"
-                                    title="Asiento {{ seat.row_number }}{{ seat.letter }} - {% if seat_data.is_reserved %}Reservado{% else %}Disponible{% endif %}"
-                                >
-                                    {% if not seat_data.is_reserved %}
-                                        <input 
-                                            type="radio" 
-                                            name="seat_selector" 
-                                            value="{{ seat.id }}" 
-                                            id="seat_{{ seat.id }}"
-                                            
-                                            {% if form.seat.value|slugify == seat.id|slugformat:"s" %}checked{% endif %} 
-                                            
-                                            onclick="document.getElementById('id_seat').value = this.value;"
-                                        >
-                                        <label for="seat_{{ seat.id }}">{{ seat.letter }}</label>
-                                    {% else %}
-                                        <label>{{ seat.letter }}</label>
-                                    {% endif %}
-                                </div>
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <h4 class="card-title">Confirmar Reserva</h4>
 
-                                {% if seat.letter == "D" and not forloop.last %}
-                                    <span class="aisle">|</span>
-                                {% endif %}
-                            {% endfor %}
+          <!-- IMPORTANTE: id="reservation-form" para el JS -->
+          <form id="reservation-form" method="POST" action="{% url 'flight_detail' flight_id=flight.id %}">
+            {% csrf_token %}
 
-                            <span class="aisle">{{ row_number }}</span>
-                        </div>
-                    {% endfor %}
-                
-                <div class="legend mt-3">
-                    <span class="badge bg-success">Disponible</span>
-                    <span class="badge bg-danger">Reservado</span>
-                    <span class="badge bg-primary">Seleccionado</span>
-                </div>
+            <!-- Flight ID para JS -->
+            <input type="hidden" name="flight" value="{{ flight.id }}">
+
+            <!-- Seat hidden: se completa al hacer clic en el seat map -->
+            <input
+              type="hidden"
+              name="{{ form.seat.name }}"
+              id="id_seat"
+              value="{{ form.seat.value|default:'' }}"
+            >
+
+            <div class="mb-3">
+              <label for="{{ form.passenger.id_for_label }}" class="form-label">Selecciona Pasajero</label>
+              {{ form.passenger }}
+              {% if form.passenger.errors %}<div class="text-danger small">{{ form.passenger.errors }}</div>{% endif %}
             </div>
+
+            <button type="submit" class="search-button w-100 mt-3">
+              Completar Reserva
+            </button>
+
+            {% if form.seat.errors %}
+              <div class="alert alert-danger mt-2">Asiento: {{ form.seat.errors }}</div>
+            {% endif %}
+          </form>
+
+          <!-- Botón para refrescar asientos disponibles vía API -->
+          <button id="refresh-seats" type="button" class="btn btn-outline-primary mt-3 w-100">Actualizar asientos</button>
         </div>
-        
+      </div>
     </div>
-    
-    <a href="{% url 'search_flights' %}" class="btn btn-secondary mt-4">
-        ⬅️ Volver a Resultados
-    </a>
-<div id="api-message" class="mt-3"></div>
+
+    <!-- Columna derecha: seat map -->
+    <div class="col-md-7">
+      <h3>Selecciona tu Asiento</h3>
+
+      <div class="seat-map text-center">
+        <p class="text-secondary">Selecciona un asiento disponible (verde)</p>
+
+        {% for row_number, seats in seats_by_row.items %}
+          <div class="seat-row">
+            <span class="aisle">{{ row_number }}</span>
+
+            {% for seat_data in seats %}
+              {% with seat=seat_data.object %}
+                <div
+                  class="seat {% if seat_data.is_reserved %}reserved{% else %}available{% endif %}"
+                  title="Asiento {{ seat.row_number }}{{ seat.letter }} - {% if seat_data.is_reserved %}Reservado{% else %}Disponible{% endif %}"
+                >
+                  {% if not seat_data.is_reserved %}
+                    <input
+                      type="radio"
+                      name="seat_selector"
+                      value="{{ seat.id }}"
+                      id="seat_{{ seat.id }}"
+                      {% if form.seat.value|slugify == seat.id|slugformat:"s" %}checked{% endif %}
+                      onclick="document.getElementById('id_seat').value = this.value;"
+                    >
+                    <label for="seat_{{ seat.id }}">{{ seat.letter }}</label>
+                  {% else %}
+                    <label>{{ seat.letter }}</label>
+                  {% endif %}
+                </div>
+
+                {% if seat.letter == "D" and not forloop.last %}
+                  <span class="aisle">|</span>
+                {% endif %}
+              {% endwith %}
+            {% endfor %}
+
+            <span class="aisle">{{ row_number }}</span>
+          </div>
+        {% endfor %}
+
+        <div class="legend mt-3">
+          <span class="badge bg-success">Disponible</span>
+          <span class="badge bg-danger">Reservado</span>
+          <span class="badge bg-primary">Seleccionado</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <a href="{% url 'search_flights' %}" class="btn btn-secondary mt-4">⬅️ Volver a Resultados</a>
+  <div id="api-message" class="mt-3"></div>
 </div>
 
 {% endblock content %}
 
 {% block extra_js %}
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // 1. Obtener el token de acceso
-        const accessToken = localStorage.getItem('access_token');
-        
-        // 2. Obtener la referencia al formulario de reserva (ID clave: 'reservation-form')
-        const formReserva = document.getElementById('reservation-form'); 
-        const apiMessage = document.getElementById('api-message'); // Contenedor de mensajes
-        
-        if (!formReserva) {
-            console.error("No se encontró el formulario con ID 'reservation-form'.");
-            return;
-        }
+document.addEventListener('DOMContentLoaded', function () {
+  // --- Utilidades y refs ---
+  const accessToken   = localStorage.getItem('access_token');
+  const apiMessage    = document.getElementById('api-message');
+  const formReserva   = document.getElementById('reservation-form');
+  const aircraftMeta  = document.getElementById('aircraft-meta');
+  const aircraftId    = aircraftMeta ? aircraftMeta.dataset.aircraftId : null;
+  const flightId      = document.querySelector('input[name="flight"]')?.value;
 
-        formReserva.addEventListener('submit', function(event) {
-            event.preventDefault(); // Detener el envío tradicional
+  function authHeaders() {
+    return accessToken ? { 'Authorization': `Bearer ${accessToken}` } : {};
+  }
+  function toast(msg, type='info') {
+    const colors = { info:'#2b6cb0', ok:'#2f855a', warn:'#b7791f', err:'#c53030' };
+    apiMessage.innerHTML = `<div style="padding:10px;border-radius:6px;color:#fff;background:${colors[type]||colors.info};margin-top:10px">${msg}</div>`;
+  }
 
-            // Limpiar mensajes anteriores
-            apiMessage.innerHTML = '';
-            
-            const seatIdInput = document.getElementById('id_seat');
-            const passengerInput = document.getElementById('id_passenger'); // ID del selector de pasajero
-            
-            // Validar que se haya seleccionado un asiento
-            if (!seatIdInput.value) {
-                apiMessage.innerHTML = '<div class="alert alert-warning">Por favor, selecciona un asiento.</div>';
-                return;
-            }
-            
-            // Validar que se haya seleccionado un pasajero
-            if (!passengerInput || !passengerInput.value) {
-                apiMessage.innerHTML = '<div class="alert alert-warning">Por favor, selecciona un pasajero.</div>';
-                return;
-            }
-            
-            // Si no hay token, redirigir al login (la API fallaría de todas formas)
-            if (!accessToken) {
-                alert("Debes iniciar sesión para realizar una reserva.");
-                window.location.href = "{% url 'flights:login' %}"; 
-                return;
-            }
+  if (!formReserva) { console.error("No se encontró el formulario de reserva."); return; }
 
-            // 3. Recolectar los datos del formulario
-            const reservaData = {
-                // Estos nombres ('flight', 'seat', 'passenger') deben coincidir con tu Serializer
-                'flight': document.querySelector('input[name="flight"]').value, // ID del vuelo
-                'seat': seatIdInput.value, // ID del asiento seleccionado
-                'passenger': passengerInput.value, // ID del pasajero seleccionado
-            };
-            
-            // Deshabilitar botón para evitar doble click
-            const submitButton = formReserva.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
+  // --- Envío de reserva: POST a /flights/api/reservas/ ---
+  formReserva.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    apiMessage.innerHTML = '';
 
-            // 4. Enviar la solicitud POST a la API
-            fetch('/api/reservas/', { // <-- El endpoint de tu API
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // CLAVE: Incluir el token JWT en el encabezado Authorization
-                    'Authorization': `Bearer ${accessToken}` 
-                },
-                body: JSON.stringify(reservaData)
-            })
-            .then(response => {
-                // 5. Manejar respuestas (incluyendo el error 401 Unauthorized)
-                if (response.ok) {
-                    return response.json(); 
-                } 
-                if (response.status === 401) {
-                    // Si el token es inválido o no existe
-                    localStorage.removeItem('access_token');
-                    localStorage.removeItem('refresh_token');
-                    alert("Tu sesión ha expirado. Por favor, inicia sesión de nuevo.");
-                    window.location.href = "{% url 'flights:login' %}"; 
-                    return Promise.reject('Unauthorized');
-                }
-                // Manejar errores de validación (ej: asiento ya reservado)
-                return response.json().then(data => {
-                    const error = new Error(data.message || 'Error desconocido al crear la reserva.');
-                    error.details = data.data || data.error; 
-                    throw error;
-                });
-            })
-            .then(data => {
-                // ÉXITO
-                const code = data.data.reservation_code || 'N/A';
-                alert(`¡Reserva exitosa! Código: ${code}`);
-                window.location.href = "{% url 'flights:index' %}"; 
-            })
-            .catch(error => {
-                // Manejo de errores en la UI
-                submitButton.disabled = false; 
-                
-                let msg = error.message || "Ha ocurrido un error inesperado.";
-                
-                if (error.details) {
-                    let detailMsg = '';
-                    for (const key in error.details) {
-                        detailMsg += `<p class="mb-0"><strong>${key}:</strong> ${error.details[key].join(' ')}</p>`;
-                    }
-                    apiMessage.innerHTML = `<div class="alert alert-danger">${msg}<hr class="my-1">${detailMsg}</div>`;
-                } else if (error !== 'Unauthorized') {
-                    apiMessage.innerHTML = `<div class="alert alert-danger">${msg}</div>`;
-                }
-                console.error('Error en la reserva:', error);
-            });
-        });
-    });
+    const seatIdInput  = document.getElementById('id_seat');
+    const passengerSel = document.getElementById('id_passenger');
+    const submitButton = formReserva.querySelector('button[type="submit"]');
+
+    if (!seatIdInput?.value) { toast('Por favor, selecciona un asiento.', 'warn'); return; }
+    if (!passengerSel?.value) { toast('Por favor, selecciona un pasajero.', 'warn'); return; }
+    if (!flightId) { toast('Falta el ID de vuelo en el formulario.', 'err'); return; }
+
+    if (!accessToken) {
+      alert("Debes iniciar sesión para realizar una reserva.");
+      window.location.href = "{% url 'flights:login' %}";
+      return;
+    }
+
+    // -> Lo que espera el serializer (passenger_id, flight_id, seat_id) :contentReference[oaicite:4]{index=4}
+    const payload = {
+      passenger_id: passengerSel.value,
+      flight_id:    flightId,
+      seat_id:      seatIdInput.value
+    };
+
+    submitButton.disabled = true;
+
+    try {
+      const resp = await fetch('/flights/api/reservas/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await resp.json();
+
+      if (!resp.ok) {
+        const detail = data?.error || data?.message || (data?.data && JSON.stringify(data.data)) || 'No se pudo crear la reserva.';
+        throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
+      }
+
+      const code = data?.data?.reservation_code || 'N/A';
+      toast(`¡Reserva creada con éxito! Código: ${code}`, 'ok');
+      // Si querés, redirigí al inicio o a una página de detalle:
+      // window.location.href = `/flights/reservation/${data.data.id}/`;
+    } catch (err) {
+      toast(`Error al crear la reserva: ${err.message}`, 'err');
+      submitButton.disabled = false;
+    }
+  });
+
+  // --- Refrescar disponibilidad desde la API ---
+  async function refrescarDisponibilidad() {
+    if (!aircraftId || !flightId) return;
+    try {
+      // Endpoint real: /flights/api/aviones/{id}/disponibilidad?vuelo_id={flight_id} :contentReference[oaicite:5]{index=5}
+      const url  = `/flights/api/aviones/${aircraftId}/disponibilidad?vuelo_id=${flightId}`;
+      const resp = await fetch(url);
+      if (!resp.ok) throw new Error('No se pudo obtener disponibilidad');
+      const data = await resp.json(); // { vuelo_id, disponibles_count, asientos: [...] } :contentReference[oaicite:6]{index=6}
+      toast(`Asientos disponibles: ${data.disponibles_count}`, 'info');
+
+      // (Opcional) Marcar ocupados/libres en el DOM según data.asientos.
+      // Aquí podrías reconstruir el seat map o habilitar/deshabilitar radios.
+    } catch (e) {
+      toast(`No se pudo actualizar la disponibilidad: ${e.message}`, 'err');
+    }
+  }
+  document.getElementById('refresh-seats')?.addEventListener('click', refrescarDisponibilidad);
+});
 </script>
 {% endblock %}

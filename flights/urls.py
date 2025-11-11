@@ -13,7 +13,6 @@ router.register(r'boletos', views.TicketViewSet, basename='boleto')
 app_name = 'flights' 
 
 urlpatterns = [
-    
     # HOME PAGE 
     path('', views.index, name='index'),
     
@@ -40,6 +39,9 @@ urlpatterns = [
     path('passenger/<int:passenger_id>/', views.passenger_detail, name='passenger_detail'),
     path('reservation/<int:reservation_id>/', views.reservation_detail, name='reservation_detail'),
     path('ticket/<int:ticket_id>/', views.ticket_detail, name='ticket_detail'),
+
+    # ✅ NUEVA PÁGINA WEB: "Mis reservas" (rol usuario)
+    path('mis-reservas/', views.my_reservations, name='my_reservations'),
 
     # RUTAS API REST
     

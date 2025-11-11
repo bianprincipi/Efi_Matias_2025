@@ -25,6 +25,8 @@ from .serializers import VueloSerializer, PassengerSerializer, ReservationSerial
 from .permissions import IsAirlineAdmin     
 # Importaciones de Servicios
 from .services.ticket_servide import TicketService
+from django.shortcuts import render
+
 
 User = get_user_model()
 
@@ -33,6 +35,8 @@ User = get_user_model()
 # =======================================================================================
 
 # Vistas existentes (index, search_flights, flight_detail, etc.) ...
+
+
 def index(request):
     search_form = FlightSearchForm()
     try: 
@@ -46,6 +50,12 @@ def index(request):
     }
     return render(request, 'flights/index.html', context)
 
+def my_reservations(request):
+    # Solo renderiza la plantilla; el JS hace la llamada a la API
+    return render(request, 'flights/my_reservations.html', {
+        'page_title': 'Mis reservas'
+    })
+ 
 def search_flights(request):
     results = Flight.objects.none() 
     form = FlightSearchForm(request.GET)

@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Mis reservas{% endblock %}
+
+{% block content %}
+<style>
+  .res-search-card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 10px 30px rgba(0,0,0,.08); margin-bottom: 24px; }
+  .res-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px,1fr)); gap: 16px; }
+  .res-card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+  .res-h { margin: 0 0 8px 0; color: #2d3748; font-size: 18px; font-weight: 700; }
+  .muted { color: #718096; font-size: 14px; }
+  .pill { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 12px; margin-left: 8px; background: #edf2f7; color: #4a5568; }
+  .btn { background:#667eea; color:#fff; border:none; padding:12px 18px; border-radius:8px; cursor:pointer; }
+  .btn:hover { background:#5568d3; }
+  .input { padding:12px; border:2px solid #e2e8f0; border-radius:8px; width:100%; }
+  .row { display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+  .msg { margin-top: 12px; }
+</style>
+
+<div class="container mt-5 pt-5">
+  <h1 class="mb-3">Mis reservas</h1>
+
+  <div class="res-search-card">
+    <div class="row">
+      <div style="flex:1 1 220px;">
+        <label for="pasajero-id" class="muted">ID de pasajero</label>
+        <input id="pasajero-id" class="input" type="number" min="1" placeholder="Ej: 12">
+      </div>
+      <div>
+        <button id="btn-buscar" class="btn">Ver reservas</button>
+      </div>
+      <div>
+        <button id="btn-guardar" class="btn" style="background:#4caf50">Guardar ID</button>
+      </div>
+      <div>
+        <button id="btn-limpiar" class="btn" style="background:#e53e3e">Borrar guardado</button>
+      </div>
+    </div>
+    <div id="status" class="msg muted"></div>
+  </div>
+
+  <div id="resumen" class="muted" style="margin-bottom:12px;"></div>
+  <div id="reservas" class="res-grid"></div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+(function(){
+  const input = document.getElementById('pasajero-id');
+  const btnBuscar = document.getElementById('btn-buscar');
+  const btnGuardar = document.getElementById('btn-guardar');
+  const btnLimpiar = document.getElementById('btn-limpiar');
+  const cont = document.getElementById('reservas');
+  const resumen = document.getElementById('resumen');
+  const status = document.getElementById('status');
+
+  // Cargar el ID recordado (si existe)
+  const saved = localStorage.getItem('passenger_id');
+  if (saved) input.value = saved;
+
+  function msg(text, isError=false) {
+    status.textContent = text || '';
+    status.style.color = isError ? '#c53030' : '#718096';
+  }
+
+  function card(res) {
+    const salida = new Date(res.flight?.departure_time || res.booking_date).toLocaleString();
+    const vuelo  = res.flight_number || ('Vuelo #' + (res.flight?.id ?? ''));
+    const asiento= res.seat_number || (res.seat?.seat_number ?? '');
+    const cod    = res.reservation_code || res.id;
+
+    return `
+      <div class="res-card">
+        <div class="res-h">${vuelo}
+          <span class="pill">${res.estado || 'ACTIVA'}</span>
+        </div>
+        <div class="muted">
+          ${res.flight?.origin || '-'} → ${res.flight?.destination || '-'}<br>
+          Sale: ${salida}<br>
+          Asiento: ${asiento}
+        </div>
+        <div style="margin-top:10px">
+          <a class="btn" style="text-decoration:none; display:inline-block"
+             href="/flights/reservation/${res.id}/">Ver detalle</a>
+          <span class="pill">Código: ${cod}</span>
+        </div>
+      </div>
+    `;
+  }
+
+  async function buscar() {
+    cont.innerHTML = '';
+    resumen.textContent = '';
+    msg('Cargando...');
+
+    const id = input.value.trim();
+    if (!id) { msg('Ingresá un ID de pasajero.'); return; }
+
+    try {
+      // Endpoint API existente: /flights/api/pasajeros/{id}/reservas_activas
+      const resp = await fetch(`/flights/api/pasajeros/${id}/reservas_activas/`);
+      if (!resp.ok) {
+        const t = await resp.text();
+        throw new Error(t || 'No se pudo cargar reservas');
+      }
+      const data = await resp.json();
+
+      const nombre = data.pasajero || '';
+      resumen.textContent = `${nombre} — ${data.reservas_activas_count} reserva(s) activa(s)`;
+
+      if (!data.reservas || !data.reservas.length) {
+        cont.innerHTML = `<div class="muted">No hay reservas activas para este pasajero.</div>`;
+        msg('');
+        return;
+      }
+      cont.innerHTML = data.reservas.map(card).join('');
+      msg('');
+    } catch (e) {
+      cont.innerHTML = '';
+      resumen.textContent = '';
+      msg(`Error: ${e.message}`, true);
+    }
+  }
+
+  btnBuscar.addEventListener('click', buscar);
+  btnGuardar.addEventListener('click', () => {
+    if (input.value.trim()) {
+      localStorage.setItem('passenger_id', input.value.trim());
+      msg('ID guardado en este navegador.');
+    } else {
+      msg('Ingresá un ID primero.', true);
+    }
+  });
+  btnLimpiar.addEventListener('click', () => {
+    localStorage.removeItem('passenger_id');
+    input.value = '';
+    msg('Guardado eliminado.');
+  });
+})();
+</script>
+{% endblock %}
