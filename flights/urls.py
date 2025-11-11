@@ -1,59 +1,53 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-# Importar todas las vistas necesarias desde el módulo .views (incluyendo la nueva APIView)
 from . import views 
-from .views import (
-    VueloViewSet, 
-    PassengerViewSet, 
-    ReservationViewSet, 
-    AircraftViewSet,
-    TicketViewSet,
-    SearchFlightsAPIView, # <-- 1. IMPORTACIÓN DE LA NUEVA VISTA API
-    UserProfileAPIView
-) 
-from rest_framework import routers
 
+# Crea el router para las vistas de la API (REST Framework)
 router = DefaultRouter()
-router.register(r'vuelos', VueloViewSet, basename='vuelo')         # /api/vuelos/
-router.register(r'pasajeros', PassengerViewSet, basename='pasajero') # /api/pasajeros/
-router.register(r'reservas', ReservationViewSet, basename='reserva') # /api/reservas/
-router.register(r'aviones', AircraftViewSet, basename='avion')     # /api/aviones/
-router.register(r'boletos', TicketViewSet, basename='boleto')     # /api/boletos/
+router.register(r'vuelos', views.VueloViewSet, basename='vuelo')         
+router.register(r'pasajeros', views.PassengerViewSet, basename='pasajero') 
+router.register(r'reservas', views.ReservationViewSet, basename='reserva') 
+router.register(r'aviones', views.AircraftViewSet, basename='avion')     
+router.register(r'boletos', views.TicketViewSet, basename='boleto')     
 
-app_name = 'flights'
+app_name = 'flights' 
 
 urlpatterns = [
     
-    # HOME PAGE (Muestra Cliente o redirige a Admin Dashboard si es staff)
+    # HOME PAGE 
     path('', views.index, name='index'),
     
-    # BÚSQUEDA WEB (VISTA TRADICIONAL - Puedes eliminarla si solo usas API)
+    # BÚSQUEDA WEB 
     path('search/', views.search_flights, name='search_flights'),
     
     # DASHBOARD DE ADMINISTRADOR WEB
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
 
-    # NUEVAS RUTAS DE GESTIÓN (Usando las rutas fijas del HTML)
+    # GESTIÓN DE VUELOS (CRUD)
     path('dashboard/vuelos/', views.manage_flights, name='manage_flights'),
+    path('dashboard/vuelos/crear/', views.create_flight, name='create_flight'),
+    path('dashboard/vuelos/editar/<int:flight_id>/', views.edit_flight, name='edit_flight'),
+    path('dashboard/vuelos/eliminar/<int:flight_id>/', views.delete_flight, name='delete_flight'),
+    
+    # GESTIÓN DE OTROS MODELOS
     path('dashboard/reservas/', views.manage_reservations, name='manage_reservations'),
     path('dashboard/aviones/', views.manage_aircrafts, name='manage_aircrafts'),
     path('dashboard/pasajeros/', views.manage_passengers, name='manage_passengers'),
     path('dashboard/usuarios/', views.manage_users, name='manage_users'),
     
-    # RUTAS DE DETALLE WEB (Correctas sin el prefijo 'flights/')
-    path('<int:flight_id>/', views.flight_detail, name='flight_detail'), # Detalle de Vuelo (Ej: /flights/42/)
+    # RUTAS DE DETALLE WEB 
+    path('<int:flight_id>/', views.flight_detail, name='flight_detail'), 
     path('passenger/<int:passenger_id>/', views.passenger_detail, name='passenger_detail'),
     path('reservation/<int:reservation_id>/', views.reservation_detail, name='reservation_detail'),
     path('ticket/<int:ticket_id>/', views.ticket_detail, name='ticket_detail'),
 
     # RUTAS API REST
     
-    # ENDPOINT DE PERFIL (Permite diferenciar Admin/Pasajero)
-    path('api/profile/', UserProfileAPIView.as_view(), name='api_profile'),
+    # ENDPOINT DE PERFIL
+    path('api/profile/', views.UserProfileAPIView.as_view(), name='api_profile'),
     
-    # 2. ENDPOINT DE BÚSQUEDA API DEDICADO
-    # Ejemplo de uso en Postman: /api/vuelos/buscar/?origin=BUE&destination=COR
-    path('api/vuelos/buscar/', SearchFlightsAPIView.as_view(), name='flight-search-api'),
+    # ENDPOINT DE BÚSQUEDA API DEDICADO
+    path('api/vuelos/buscar/', views.SearchFlightsAPIView.as_view(), name='flight-search-api'),
     
     # ENDPOINTS CRUD (Generados por el Router)
     path('api/', include(router.urls)), 

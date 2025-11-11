@@ -107,3 +107,21 @@ class ReservationForm(forms.ModelForm):
         
         return seat
 
+class FlightForm(forms.ModelForm):
+    """
+    Formulario basado en el modelo Flight para Crear y Editar.
+    """
+    class Meta:
+        model = Flight
+        fields = ['flight_number', 'origin', 'destination', 'departure_time', 'arrival_time', 'price', 'aircraft']
+        
+        # Personalización de widgets
+        widgets = {
+            'flight_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'origin': forms.TextInput(attrs={'class': 'form-control'}),
+            'destination': forms.TextInput(attrs={'class': 'form-control'}),
+            'departure_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'arrival_time': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+            'price': forms.NumberInput(attrs={'min': '0', 'step': '0.01', 'class': 'form-control'}), # <-- ¡CORREGIDO!
+            'aircraft': forms.Select(attrs={'class': 'form-control'}),
+        }
