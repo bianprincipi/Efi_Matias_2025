@@ -1,5 +1,5 @@
 from django import forms
-from .models import Reservation, Flight, Seat, Passenger
+from .models import Reservation, Flight, Seat, Passenger, Ticket
 
 
 # 1. Formulario de Búsqueda de Vuelos
@@ -125,3 +125,60 @@ class FlightForm(forms.ModelForm):
             'price': forms.NumberInput(attrs={'min': '0', 'step': '0.01', 'class': 'form-control'}), # <-- ¡CORREGIDO!
             'aircraft': forms.Select(attrs={'class': 'form-control'}),
         }
+
+# =========================================================
+# FORMULARIO DE GESTIÓN DE RESERVAS (CRUD ADMINISTRACIÓN)
+# =========================================================
+class ReservationManagementForm(forms.ModelForm):
+    """
+    Formulario para Crear y Editar Reservas (usado por el administrador en el Dashboard).
+    """
+    class Meta:
+        model = Reservation
+        # ELIMINA 'booking_date' de esta lista.
+        fields = ['flight', 'passenger', 'seat', 'is_confirmed']
+        
+        widgets = {
+            'flight': forms.Select(attrs={'class': 'form-control'}),
+            'passenger': forms.Select(attrs={'class': 'form-control'}),
+            'seat': forms.Select(attrs={'class': 'form-control'}), 
+            'is_confirmed': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            # ELIMINA el widget de 'booking_date'
+            # 'booking_date': forms.DateTimeInput(attrs={'type': 'datetime-local', 'class': 'form-control'}),
+        }
+        
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Opcional: Mejorar los querysets si hay muchos registros
+        self.fields['passenger'].queryset = Passenger.objects.all().order_by('last_name')
+        self.fields['flight'].queryset = Flight.objects.all().order_by('-departure_time')
+
+
+# =========================================================
+# FORMULARIO DE GESTIÓN DE BOLETOS/TICKETS (CRUD ADMINISTRACIÓN)
+# =========================================================
+class TicketManagementForm(forms.ModelForm):
+    """
+    Formulario para Crear y Editar Boletos (usado por el administrador en el Dashboard).
+    """
+    class Meta:
+        model = Ticket
+        # Un boleto solo necesita ser asociado a una Reserva y tiene un estado de check-in.
+        fields = ['reservation', 'is_checked_in'] 
+        
+        widgets = {
+            'reservation': forms.Select(attrs={'class': 'form-control'}),
+            'is_checked_in': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+        }
+        
+    def clean_ticket_code(self):
+        """Asegura que el código se autogenere si es un registro nuevo y el campo está vacío."""
+        ticket_code = self.cleaned_data.get('ticket_code')
+        if not self.instance.pk and not ticket_code:
+            # Si es un objeto nuevo y el código está vacío, genera uno.
+            # Nota: Esto debería manejarlo mejor el modelo/servicio si usas UUID, 
+            # pero lo forzamos aquí para el formulario.
+            import uuid
+            ticket_code = str(uuid.uuid4()).split('-')[-1].upper()
+        
+        return ticket_code

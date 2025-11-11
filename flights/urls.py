@@ -28,6 +28,18 @@ urlpatterns = [
     path('dashboard/vuelos/crear/', views.create_flight, name='create_flight'),
     path('dashboard/vuelos/editar/<int:flight_id>/', views.edit_flight, name='edit_flight'),
     path('dashboard/vuelos/eliminar/<int:flight_id>/', views.delete_flight, name='delete_flight'),
+
+    # GESTIÓN DE RESERVAS (CRUD) <--- ¡NUEVAS!
+    path('dashboard/reservas/', views.manage_reservations, name='manage_reservations'),
+    path('dashboard/reservas/crear/', views.create_reservation, name='create_reservation'),
+    path('dashboard/reservas/editar/<int:reservation_id>/', views.edit_reservation, name='edit_reservation'),
+    path('dashboard/reservas/eliminar/<int:reservation_id>/', views.delete_reservation, name='delete_reservation'),
+    
+    # GESTIÓN DE BOLETOS/TICKETS (CRUD) <--- ¡NUEVAS!
+    path('dashboard/boletos/', views.manage_tickets, name='manage_tickets'),
+    path('dashboard/boletos/crear/', views.create_ticket, name='create_ticket'),
+    path('dashboard/boletos/editar/<int:ticket_id>/', views.edit_ticket, name='edit_ticket'),
+    path('dashboard/boletos/eliminar/<int:ticket_id>/', views.delete_ticket, name='delete_ticket'),
     
     # GESTIÓN DE OTROS MODELOS
     path('dashboard/reservas/', views.manage_reservations, name='manage_reservations'),

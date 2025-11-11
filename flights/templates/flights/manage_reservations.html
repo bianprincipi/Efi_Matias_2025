@@ -1,56 +1,85 @@
-{% extends "base.html" %}
+{% extends "flights/base.html" %}
 {% load static %}
 
-{% block title %}{{ page_title }}{% endblock %}
+{% block title %}Gestión de Reservas{% endblock %}
 
 {% block content %}
-<div class="container mt-5 pt-5">
-    
-    <h2>🎟️ {{ page_title }}</h2>
-    <p class="lead">Listado completo de todas las reservas realizadas en el sistema.</p>
-    
-    <a href="/flights/dashboard/" class="btn btn-secondary mb-3">
-        ⬅️ Volver al Panel de Control
-    </a>
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-book"></i> Gestión de Reservas</h2>
+        <a href="{% url 'flights:create_reservation' %}" class="btn btn-success">
+            <i class="fas fa-plus-circle"></i> Crear Nueva Reserva
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
 
     {% if reservations %}
         <div class="table-responsive">
-            <table class="table table-striped table-hover mt-3">
+            <table class="table table-striped table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th>Código PNR</th>
-                        <th>Vuelo #</th>
-                        <th>Origen/Destino</th>
+                        <th>ID</th>
+                        <th>Vuelo</th>
                         <th>Pasajero</th>
                         <th>Asiento</th>
-                        <th>Precio Total</th>
                         <th>Fecha Reserva</th>
+                        <th>Estado</th> 
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for res in reservations %}
-                    <tr>
-                        <td><strong>{{ res.reservation_code }}</strong></td>
-                        <td>{{ res.flight.flight_number }}</td>
-                        <td>{{ res.flight.origin }}/{{ res.flight.destination }}</td>
-                        <td>{{ res.passenger.first_name }} {{ res.passenger.last_name }}</td>
-                        <td>{{ res.seat.seat_number }}</td>
-                        <td>${{ res.total_price|floatformat:2 }}</td>
-                        <td>{{ res.booking_date|date:"d/m/Y H:i" }}</td>
-                        <td>
-                            <a href="#" class="btn btn-sm btn-info" title="Ver Detalle">Detalle</a>
-                        </td>
-                    </tr>
+                    {% for reservation in reservations %}
+                        <tr>
+                            <td>{{ reservation.id }}</td>
+                            <td>
+                                {{ reservation.flight.flight_number }}
+                                <br><small class="text-muted">{{ reservation.flight.origin }} -> {{ reservation.flight.destination }}</small>
+                            </td>
+                            <td>{{ reservation.passenger.first_name }} {{ reservation.passenger.last_name }}</td>
+                            <td>{{ reservation.seat }}</td>
+                            <td>{{ reservation.booking_date|date:"d/m/Y H:i" }}</td>
+                            <td>
+                                {% if reservation.status == 'CONFIRMADO' %}
+                                    <span class="badge bg-success">CONFIRMADO</span>
+                                {% else %}
+                                    <span class="badge bg-warning text-dark">{{ reservation.status|default:"PENDIENTE" }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'flights:edit_reservation' reservation.id %}" class="btn btn-sm btn-warning me-2" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+
+                                <form action="{% url 'flights:delete_reservation' reservation.id %}" method="post" class="d-inline" onsubmit="return confirm('¿Estás seguro de que deseas eliminar la reserva #{{ reservation.id }}?')">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
                     {% endfor %}
                 </tbody>
             </table>
         </div>
     {% else %}
-        <div class="alert alert-info mt-4">
+        <div class="alert alert-info">
             No hay reservas registradas en el sistema.
         </div>
     {% endif %}
+    
+    <div class="mt-4">
+        <a href="{% url 'flights:admin_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
 
 </div>
 {% endblock %}

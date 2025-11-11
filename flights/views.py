@@ -17,7 +17,7 @@ from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
 # 3. Librerías Locales (de tu propio proyecto)
 # Importaciones de Formularios
-from .forms import FlightSearchForm, ReservationForm, FlightForm 
+from .forms import FlightSearchForm, ReservationForm, FlightForm, ReservationManagementForm, TicketManagementForm
 # Importaciones de Modelos 
 from .models import Flight, Passenger, Reservation, Seat, Ticket, Aircraft 
 # Importaciones de Serializadores y Permisos
@@ -511,18 +511,7 @@ class ReservationViewSet(viewsets.GenericViewSet,
         return [permission() for permission in permission_classes]
     
     def perform_create(self, serializer):
-        # Asigna el usuario que está autenticado a través del token JWT
-        # Nota: Asume que tu modelo Reservation tiene un campo 'user' o 'passenger' que es un ForeignKey.
-        # Si tienes un campo 'user' (Foreign Key al modelo User):
         serializer.save(user=self.request.user) 
-        
-        # Si tienes un campo 'passenger' (Foreign Key a tu modelo Passenger) y quieres obtener el objeto Passenger
-        # asociado al User logueado (si tienes un modelo Passenger asociado 1 a 1 con User):
-        # try:
-        #     passenger_instance = Passenger.objects.get(user=self.request.user)
-        #     serializer.save(passenger=passenger_instance)
-        # except Passenger.DoesNotExist:
-        #     raise Exception("No se encontró un perfil de Pasajero asociado al usuario logueado.")
 
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
@@ -553,7 +542,6 @@ class ReservationViewSet(viewsets.GenericViewSet,
             return Response({"error": "Debe proporcionar el nuevo estado de la reserva ('estado')."}, 
                             status=status.HTTP_400_BAD_REQUEST)
         
-        # ⚠️ Aquí deberías agregar la lógica real para validar y cambiar el estado en el modelo
         try:
             # reservation.estado = new_state # Descomentar y validar si es un estado válido
             # reservation.save()
@@ -673,3 +661,155 @@ class TicketViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
         except Exception as e:
             return Response({"error": f"Error interno al generar el boleto: {str(e)}"}, 
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# =========================================================
+# VISTAS DE ADMINISTRACIÓN DE BOLETOS (CRUD)
+# =========================================================
+
+@login_required
+def manage_tickets(request):
+    """Muestra la lista de boletos."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado.")
+        return redirect('flights:index')
+    
+    tickets = Ticket.objects.select_related('reservation__flight', 'reservation__passenger').all().order_by('-reservation__flight__departure_time')
+    context = {'tickets': tickets}
+    return render(request, 'flights/manage_tickets.html', context)
+
+@login_required
+def create_ticket(request):
+    """Permite al administrador crear un nuevo boleto."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado.")
+        return redirect('flights:index')
+    
+    if request.method == 'POST':
+        form = TicketManagementForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Boleto creado exitosamente.")
+            return redirect('flights:manage_tickets')
+    else:
+        form = TicketManagementForm()
+        
+    context = {'form': form, 'page_title': 'Crear Nuevo Boleto'}
+    return render(request, 'flights/ticket_form.html', context)
+
+@login_required
+def edit_ticket(request, ticket_id):
+    """Permite al administrador editar un boleto existente."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado.")
+        return redirect('flights:index')
+    
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+    
+    if request.method == 'POST':
+        form = TicketManagementForm(request.POST, instance=ticket)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Boleto #{ticket.id} actualizado exitosamente.")
+            return redirect('flights:manage_tickets')
+    else:
+        form = TicketManagementForm(instance=ticket)
+        
+    context = {'form': form, 'page_title': f'Editar Boleto #{ticket.id}', 'ticket': ticket}
+    return render(request, 'flights/ticket_form.html', context)
+
+@login_required
+def delete_ticket(request, ticket_id):
+    """Permite al administrador eliminar un boleto."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado.")
+        return redirect('flights:index')
+
+    if request.method == 'POST':
+        ticket = get_object_or_404(Ticket, pk=ticket_id)
+        try:
+            ticket.delete()
+            messages.success(request, f"Boleto #{ticket_id} eliminado exitosamente.")
+        except Exception as e:
+            messages.error(request, f"Error al eliminar el boleto: {e}")
+            
+    return redirect('flights:manage_tickets')
+
+# =========================================================
+# VISTAS DE ADMINISTRACIÓN DE RESERVAS (CRUD)
+# =========================================================
+
+@login_required
+def manage_reservations(request):
+    """Muestra la lista de reservas."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado.")
+        return redirect('flights:index')
+    
+    reservations = Reservation.objects.select_related('flight', 'passenger').all().order_by('-booking_date')
+    context = {'reservations': reservations}
+    return render(request, 'flights/manage_reservations.html', context)
+
+@login_required
+def create_reservation(request): # <-- ESTA FUNCIÓN FALTABA O ESTABA MAL NOMBRADA
+    """Permite al administrador crear una nueva reserva."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado.")
+        return redirect('flights:index')
+    
+    if request.method == 'POST':
+        # Asegúrate de usar el formulario de gestión correcto aquí:
+        form = ReservationManagementForm(request.POST) 
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Reserva creada exitosamente.")
+            return redirect('flights:manage_reservations')
+    else:
+        form = ReservationManagementForm()
+        
+    context = {'form': form, 'page_title': 'Crear Nueva Reserva'}
+    # Asegúrate de tener la plantilla 'flights/reservation_form.html'
+    return render(request, 'flights/reservation_form.html', context)
+
+@login_required
+def edit_reservation(request, reservation_id):
+    """Permite al administrador editar una reserva existente."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado.")
+        return redirect('flights:index')
+    
+    reservation = get_object_or_404(Reservation, pk=reservation_id)
+    
+    if request.method == 'POST':
+        form = ReservationManagementForm(request.POST, instance=reservation)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Reserva #{reservation_id} actualizada exitosamente.")
+            return redirect('flights:manage_reservations')
+    else:
+        form = ReservationManagementForm(instance=reservation)
+        
+    context = {'form': form, 'page_title': f'Editar Reserva #{reservation_id}', 'reservation': reservation}
+    return render(request, 'flights/reservation_form.html', context)
+
+@login_required
+def delete_reservation(request, reservation_id):
+    """Permite al administrador eliminar una reserva."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado.")
+        return redirect('flights:index')
+
+    if request.method == 'POST':
+        # ... (lógica de eliminación) ...
+        reservation = get_object_or_404(Reservation, pk=reservation_id)
+        
+        # Lógica de verificación: ¿Tiene un boleto asociado?
+        if reservation.ticket_set.count() > 0:
+            messages.error(request, f"No se puede eliminar la reserva #{reservation_id}. Debe eliminar {reservation.ticket_set.count()} boleto(s) asociado(s) primero.")
+        else:
+            try:
+                reservation.delete()
+                messages.success(request, f"Reserva #{reservation_id} eliminada exitosamente.")
+            except Exception as e:
+                messages.error(request, f"Error al eliminar la reserva: {e}")
+            
+    return redirect('flights:manage_reservations')

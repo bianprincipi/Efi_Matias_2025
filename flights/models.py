@@ -95,6 +95,8 @@ class Reservation(models.Model):
     seat = models.ForeignKey(Seat, on_delete=models.PROTECT, related_name='reservations', verbose_name="Asiento")
     reservation_code = models.CharField(max_length=6, unique=True, default=generate_reservation_code, verbose_name="Código de Reserva")
     booking_date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Reserva")
+    status = models.CharField(max_length=20, default='PENDING')
+    is_confirmed = models.BooleanField(default=False)
 
     def clean(self):
         # Validación 1: El asiento debe pertenecer al avión del vuelo.
