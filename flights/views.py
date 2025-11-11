@@ -1,34 +1,30 @@
+#1. Librerías Estándar de Python
+import random 
+import uuid 
+# 2. Librerías de Terceros (Django, DRF, etc.)
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from .forms import FlightSearchForm, ReservationForm
-from rest_framework import viewsets, filters, mixins
-from .permissions import IsAirlineAdmin     
-from rest_framework.permissions import IsAdminUser, AllowAny
-from rest_framework.decorators import action 
-from rest_framework.response import Response 
-from rest_framework import status 
-from rest_framework.views import APIView 
-from django_filters.rest_framework import DjangoFilterBackend  
-from .models import Flight, Passenger, Reservation, Seat, Ticket, Aircraft 
-from .serializers import (
-    VueloSerializer, 
-    PassengerSerializer, 
-    ReservationSerializer, 
-    AircraftSerializer,
-    SeatSerializer,
-    TicketSerializer,
-    UserProfileSerializer  
-) 
-import uuid #generar codigo de barras
-from .services.ticket_servide import TicketService
-from django.contrib.admin.views.decorators import staff_member_required
-import random
-from .permissions import IsAirlineAdmin
-from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticated
-from django.shortcuts import render
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required 
+from django.contrib.admin.views.decorators import staff_member_required
+from rest_framework import viewsets, filters, mixins, status
+from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticated
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django_filters.rest_framework import DjangoFilterBackend
+# 3. Librerías Locales (de tu propio proyecto)
+# Importaciones de Formularios
+from .forms import FlightSearchForm, ReservationForm, FlightForm 
+# Importaciones de Modelos 
+from .models import Flight, Passenger, Reservation, Seat, Ticket, Aircraft 
+# Importaciones de Serializadores y Permisos
+from .serializers import VueloSerializer, PassengerSerializer, ReservationSerializer, AircraftSerializer, SeatSerializer, TicketSerializer, UserProfileSerializer  
+from .permissions import IsAirlineAdmin     
+# Importaciones de Servicios
+from .services.ticket_servide import TicketService
 
 User = get_user_model()
 
@@ -36,17 +32,13 @@ User = get_user_model()
 # 1. VISTAS TRADICIONALES DE DJANGO (Retornan HTML para el Front-end)
 # =======================================================================================
 
+# Vistas existentes (index, search_flights, flight_detail, etc.) ...
 def index(request):
-    """
-        Controlador principal. Muestra la página de búsqueda y los vuelos iniciales.
-    """
     search_form = FlightSearchForm()
-
     try: 
         flights = Flight.objects.all().order_by('departure_time')[:5]
     except Exception:
         flights = []
-    
     context = {
         'flights': flights,
         'search_form' : search_form,
@@ -54,68 +46,45 @@ def index(request):
     }
     return render(request, 'flights/index.html', context)
 
-
-# ⚠️ NOTA: Esta vista tradicional (search_flights) puede ser eliminada si solo usas la API.
 def search_flights(request):
-    """
-        Procesa el formulario de búsqueda de vuelos y muestra los resultados (retorna HTML).
-    """
-    results = Flight.objects.none() # Inicializa un QuerySet vacío
-    
+    results = Flight.objects.none() 
     form = FlightSearchForm(request.GET)
-    
     if form.is_valid():
         origin = form.cleaned_data.get('origin')
         destination = form.cleaned_data.get('destination')
         date = form.cleaned_data.get('date')
-        
         queryset = Flight.objects.all()
-        
         if origin:
             queryset = queryset.filter(origin=origin) 
         if destination:
             queryset = queryset.filter(destination=destination)
         if date:
             queryset = queryset.filter(departure_time__date=date)
-            
         results = queryset.order_by('departure_time')
-
     context = {
         'search_form': form, 
         'results': results, 
         'page_title': "Resultados de Búsqueda"
     }
-    
     return render(request, 'flights/search_results.html', context)
 
 def flight_detail(request, flight_id):
-    """
-    Muestra los detalles de un vuelo específico y maneja la creación de una reserva (POST).
-    """
     flight = get_object_or_404(Flight, pk=flight_id)
     aircraft = flight.aircraft
-
     reserved_seat_ids = Reservation.objects.filter(flight=flight).values_list('seat_id', flat=True)
     all_seats = Seat.objects.filter(aircraft=aircraft).order_by('row_number', 'letter')
-
     if request.method == 'POST':
         form = ReservationForm(request.POST, flight=flight)
-        
         if form.is_valid():
             code = ''.join(random.choices('0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ', k=6))
-
             reservation = form.save(commit=False)
             reservation.flight = flight
             reservation.reservation_code = code
-            
             reservation.save()
-            
-            return redirect('index') # Redirigir a una página de confirmación
-        
+            return redirect('index') 
     else:
         form = ReservationForm(flight=flight)
         form.fields['seat'].queryset = all_seats.exclude(id__in=reserved_seat_ids)
-
     seats_by_row = {}
     for seat in all_seats:
         is_reserved = seat.id in reserved_seat_ids
@@ -123,7 +92,6 @@ def flight_detail(request, flight_id):
             'object': seat,
             'is_reserved': is_reserved
         })
-        
     context = {
         'flight': flight,
         'aircraft': aircraft,
@@ -133,9 +101,7 @@ def flight_detail(request, flight_id):
     }
     return render(request, 'flights/flight_detail.html', context)
 
-
 def passenger_detail(request, passenger_id):
-    """Vista que muestra los detalles de un pasajero específico."""
     passenger = get_object_or_404(Passenger, id=passenger_id)
     reservations = Reservation.objects.filter(passenger=passenger).select_related('flight', 'seat')
     context = {
@@ -145,9 +111,7 @@ def passenger_detail(request, passenger_id):
     }
     return render(request, 'flights/passenger_detail.html', context)
 
-
 def reservation_detail(request, reservation_id):
-    """Vista que muestra los detalles de una reserva específica."""
     reservation = get_object_or_404(Reservation, id=reservation_id)
     context = {
         'reservation': reservation,
@@ -155,9 +119,7 @@ def reservation_detail(request, reservation_id):
     }
     return render(request, 'flights/reservation_detail.html', context)
 
-
 def ticket_detail(request, ticket_id):
-    """Vista que muestra los detalles de un boleto específico."""
     ticket = get_object_or_404(Ticket, id=ticket_id)
     context = {
         'ticket': ticket,
@@ -165,82 +127,233 @@ def ticket_detail(request, ticket_id):
     }
     return render(request, 'flights/ticket_detail.html', context)
 
-@staff_member_required #solo permite si el usuario ha iniciado sesion y es staff/admin
+@staff_member_required 
 def admin_dashboard(request):
-    """
-        Muestra el panel de control del administrador.
-    """
     context = {
         'page_title': 'Panel de Administración.'
     }
     return render(request, 'flights/admin_dashboard.html', context)
 
 
+# VISTAS DE GESTIÓN (LISTADO)
 @staff_member_required
 def manage_flights(request):
-    """
-    Lista todos los vuelos del sistema.
-    """
     all_flights = Flight.objects.all().order_by('-departure_time')
     context = {
         'page_title': 'Gestión de Vuelos',
         'flights': all_flights,
-        # 'create_url': '/flights/dashboard/vuelos/crear/'  # Ejemplo para futuros botones
     }
-    return render(request, 'flights/manage_flights.html', context) # Debes crear manage_flights.html
+    return render(request, 'flights/manage_flights.html', context) 
 
 @staff_member_required
 def manage_reservations(request):
-    """
-    Lista todas las reservas del sistema con detalles precargados.
-    """
     all_reservations = Reservation.objects.all().select_related(
         'flight', 
         'passenger', 
         'seat'
     ).order_by('-booking_date')
-
     context = {
         'page_title': 'Gestión de Reservas',
         'reservations': all_reservations,
     }
-    return render(request, 'flights/manage_reservations.html', context) # Debes crear manage_reservations.html
+    return render(request, 'flights/manage_reservations.html', context) 
 
 @staff_member_required
 def manage_aircrafts(request):
-    """
-    Lista todos los aviones/aeronaves del sistema.
-    """
     all_aircrafts = Aircraft.objects.all().order_by('model_name')
     context = {
         'page_title': 'Gestión de Aviones',
         'aircrafts': all_aircrafts,
     }
-    return render(request, 'flights/manage_aircrafts.html', context) # Debes crear manage_aircrafts.html
+    return render(request, 'flights/manage_aircrafts.html', context) 
 
 @staff_member_required
 def manage_passengers(request):
-    """
-    Lista todos los perfiles de pasajeros (diferentes del User normal si tienes un modelo Passenger).
-    """
     all_passengers = Passenger.objects.all().order_by('last_name')
     context = {
         'page_title': 'Gestión de Pasajeros',
         'passengers': all_passengers,
     }
-    return render(request, 'flights/manage_passengers.html', context) # Debes crear manage_passengers.html
+    return render(request, 'flights/manage_passengers.html', context) 
 
 @staff_member_required
 def manage_users(request):
-    """
-    Lista todos los usuarios (incluyendo clientes y staff).
-    """
     all_users = User.objects.all().order_by('date_joined')
     context = {
         'page_title': 'Gestión de Cuentas de Usuario',
         'users': all_users,
     }
-    return render(request, 'flights/manage_users.html', context) # Debes crear manage_users.html
+    return render(request, 'flights/manage_users.html', context)
+
+# =========================================================
+# VISTAS CRUD PARA VUELOS (NUEVAS)
+# =========================================================
+
+@staff_member_required
+def create_flight(request):
+    """
+    Maneja la creación de un nuevo vuelo.
+    """
+    if request.method == 'POST':
+        form = FlightForm(request.POST) 
+        if form.is_valid():
+            form.save() 
+            messages.success(request, "Vuelo creado con éxito.")
+            return redirect('flights:manage_flights') 
+    else:
+        form = FlightForm()
+
+    context = {
+        'page_title': 'Crear Nuevo Vuelo',
+        'form': form,
+    }
+    # Renderiza la plantilla de formulario
+    return render(request, 'flights/flight_form.html', context) 
+
+@staff_member_required
+def edit_flight(request, flight_id):
+    """
+    Maneja la edición de un vuelo existente.
+    """
+    flight = get_object_or_404(Flight, pk=flight_id) 
+
+    if request.method == 'POST':
+        form = FlightForm(request.POST, instance=flight)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Vuelo #{flight.flight_number} actualizado con éxito.")
+            return redirect('flights:manage_flights')
+    else:
+        form = FlightForm(instance=flight)
+
+    context = {
+        'page_title': f'Editar Vuelo #{flight.flight_number}',
+        'form': form,
+    }
+    return render(request, 'flights/flight_form.html', context) 
+
+@staff_member_required
+def delete_flight(request, flight_id):
+    """
+    Maneja la eliminación de un vuelo (requiere POST para la seguridad).
+    """
+    flight = get_object_or_404(Flight, pk=flight_id)
+    
+    if request.method == 'POST': 
+        flight_number = flight.flight_number
+        flight.delete()
+        messages.warning(request, f"Vuelo #{flight_number} eliminado correctamente.")
+        return redirect('flights:manage_flights')
+    
+    # Si alguien intenta acceder por GET, simplemente redirigimos para evitar eliminaciones accidentales
+    return redirect('flights:manage_flights')
+
+
+@login_required
+def manage_flights(request):
+    """
+        Muestra la lista de vuelos (para el panel admin).
+    """
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Solo personal autorizado.")
+        return redirect('flights:index')
+    
+    flights = Flight.objects.all().order_by('departure_time')
+    context = {
+        'flights': flights,
+        'page_title': 'Gestion de Vuelos'
+    }
+    return render(request, 'flights/manage_flights.html', context)
+
+@login_required
+def create_flight(request):
+    """Permite al admin crear un nuevo vuelo."""
+    
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado.")
+        return redirect('flights:index')
+    
+    # 1. Si es POST, procesamos los datos
+    if request.method == 'POST':
+        form = FlightForm(request.POST)
+        if form.is_valid():
+            # Caso 1: POST VÁLIDO (Redirige)
+            form.save()
+            messages.success(request, f"El vuelo #{form.cleaned_data['flight_number']} ha sido creado exitosamente.")
+            return redirect('flights:manage_flights')
+    
+    # 2. Si es GET, o si es POST INVÁLIDO, inicializamos el formulario.
+    else:
+        # Caso 3: GET (Inicializa el formulario vacío)
+        form = FlightForm()
+        
+    # 3. Renderizado final (GET o POST Inválido)
+    context = {
+        'form': form,
+        'page_title': 'Crear Nuevo Vuelo'
+    }
+    return render(request, 'flights/flight_form.html', context)
+    
+@login_required
+def edit_flight(request, flight_id):
+    """Permite al administrador editar un vuelo existente."""
+    
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado.")
+        return redirect('flights:index')
+    
+    flight = get_object_or_404(Flight, pk=flight_id)
+    
+    # 1. Si es POST, procesamos los datos
+    if request.method == 'POST':
+        form = FlightForm(request.POST, instance=flight)
+        if form.is_valid():
+            # Caso 1: POST VÁLIDO (Redirige)
+            form.save()
+            messages.success(request, f"El vuelo #{flight.flight_number} ha sido actualizado exitosamente!")
+            return redirect('flights:manage_flights')
+    
+    # 2. Si es GET, o si es POST INVÁLIDO, inicializamos/mantenemos el formulario
+    else:
+        # Caso 3: GET (Inicializa el formulario con los datos existentes del vuelo)
+        form = FlightForm(instance=flight)
+        
+    # 3. Renderizado final (GET o POST Inválido)
+    context = {
+        'form': form,
+        'flight': flight,
+        'page_title': f'Editar Vuelo #{flight.flight_number}'
+    }
+    return render(request, 'flights/flight_form.html', context)
+    
+@login_required
+def delete_flight(request, flight_id):
+    """Permite al administrador eliminar un vuelo, verificando si tiene reservas."""
+    
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Solo personal autorizado puede eliminar vuelos.")
+        return redirect('flights:index')
+
+    if request.method == 'POST':
+        flight = get_object_or_404(Flight, pk=flight_id)
+        flight_number = flight.flight_number
+        
+        reservation_count = Reservation.objects.filter(flight=flight).count()
+        
+        if reservation_count > 0:
+            messages.error(
+                request, 
+                f"No se puede eliminar el vuelo #{flight_number}. Tiene {reservation_count} reserva(s) asociada(s)."
+            )
+        else:
+            try:
+                flight.delete()
+                messages.success(request, f"El vuelo #{flight_number} ha sido eliminado exitosamente.")
+            except Exception as e:
+                messages.error(request, f"Error al eliminar el vuelo #{flight_number}: {e}")
+            
+    # Redirige siempre a la lista de gestión de vuelos
+    return redirect('flights:manage_flights')
 
 # =======================================================================================
 # 2. VISTAS DE DJANGO REST FRAMEWORK (Retornan JSON para la API)
@@ -315,6 +428,7 @@ class VueloViewSet(viewsets.ModelViewSet):
             "total_pasajeros_activos": len(passengers),
             "pasajeros": serializer.data
         })
+
 
 # =========================================================
 # Nueva Vista API para obtener el Perfil del Usuario
@@ -544,6 +658,7 @@ class TicketViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                         status=status.HTTP_400_BAD_REQUEST)
             
         try:
+            # TicketService debe estar importado correctamente en views.py
             boleto = TicketService.generate_ticket(reservation_code)
             
             serializer = self.get_serializer(boleto)

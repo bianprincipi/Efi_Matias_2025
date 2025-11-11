@@ -1,0 +1,64 @@
+{% extends "flights/base.html" %}
+
+{% block title %}
+    {% if form.instance.pk %}Editar Vuelo #{{ form.instance.flight_number }}{% else %}Crear Nuevo Vuelo{% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="container my-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 col-lg-6">
+                
+                <h2 class="mb-4">
+                    {% if form.instance.pk %}
+                        <i class="fas fa-edit"></i> Editar Vuelo: {{ form.instance.flight_number }}
+                    {% else %}
+                        <i class="fas fa-plane-departure"></i> Registrar Nuevo Vuelo
+                    {% endif %}
+                </h2>
+                
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <form method="post" novalidate>
+                            {% csrf_token %}
+
+                            {% for field in form %}
+                                <div class="mb-3">
+                                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                                    {{ field }}
+                                    
+                                    {% if field.errors %}
+                                        {% for error in field.errors %}
+                                            <div class="text-danger small">{{ error }}</div>
+                                        {% endfor %}
+                                    {% endif %}
+                                    
+                                </div>
+                            {% endfor %}
+
+                            {% if form.non_field_errors %}
+                                <div class="alert alert-danger">
+                                    {% for error in form.non_field_errors %}
+                                        {{ error }}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+
+                            <hr>
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'flights:manage_flights' %}" class="btn btn-secondary">
+                                    <i class="fas fa-arrow-left"></i> Volver a Gestión de Vuelos
+                                </a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save"></i> 
+                                    {% if form.instance.pk %}Guardar Cambios{% else %}Crear Vuelo{% endif %}
+                                </button>
+                            </div>
+                        </form>
+                        
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
