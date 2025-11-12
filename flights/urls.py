@@ -71,11 +71,12 @@ urlpatterns = [
     path('dashboard/cuentas/editar/<int:pk>/', views.UserUpdateView.as_view(), name='edit_user'),
     path('dashboard/cuentas/eliminar/<int:pk>/', views.UserDeleteView.as_view(), name='delete_user'),
 
-    # GESTIÓN DE PASAJEROS (CRUD CBVs) 
+    # GESTIÓN DE PASAJEROS (CRUD CBVs) - Mantenemos solo un set
     path('dashboard/pasajeros/', views.PassengerListView.as_view(), name='manage_passengers'),
     path('dashboard/pasajeros/crear/', views.PassengerCreateView.as_view(), name='create_passenger'),
     path('dashboard/pasajeros/editar/<int:pk>/', views.PassengerUpdateView.as_view(), name='edit_passenger'),
     path('dashboard/pasajeros/eliminar/<int:pk>/', views.PassengerDeleteView.as_view(), name='delete_passenger'),
+    path('pasajero/<int:passenger_id>/', views.passenger_detail, name='passenger_detail'),
 
     # Rutas para la Gestión de Pasajeros
     path('management/passengers/', views.PassengerListView.as_view(), name='passenger_list'),

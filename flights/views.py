@@ -107,12 +107,33 @@ def flight_detail(request, flight_id):
     return render(request, 'flights/flight_detail.html', context)
 
 def passenger_detail(request, passenger_id):
-    passenger = get_object_or_404(Passenger, id=passenger_id)
-    reservations = Reservation.objects.filter(passenger=passenger).select_related('flight', 'seat')
+    """
+        Muestra los detalles d un pasajero especifivo, incluyendo todas sus reservar y tickets asociados.
+    """
+    try:
+        #1. obtiene el pasajero o retorna 404 si no existe
+        passenger = get_object_or_404(Passenger, pk=passenger_id)
+
+        #2. consulta las reservas del pasajero
+        reservations = Reservation.objects.filter(
+            passenger=passenger
+        ).select_related('flight', 'seat').order_by('-booking_date')
+
+        #3. consulta los tickets del pasajero
+        tickets = Ticket.objects.filter(
+            reservation__id=reservations
+        ).select_related('reservation')
+
+    except Exception as e:
+        #captura errores como si la tabla no existiera temporalmente
+        messages.error(request, f"Error al cargar los datos del pasajero: {e}")
+        return redirect('flights:manage_passengers')
+    
     context = {
+        'page_title': f"Detalle del Pasajero: {passenger.first_name} {passenger.last_name}",
         'passenger': passenger,
-        'reservations': reservations,
-        'page_title': f'Detalles del Pasajero {passenger.first_name} {passenger.last_name}'
+        'reservation': reservations,
+        'tickets': tickets  
     }
     return render(request, 'flights/passenger_detail.html', context)
 
