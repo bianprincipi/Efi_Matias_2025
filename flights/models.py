@@ -1,7 +1,10 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django import forms
+
 import random
 import string
+import uuid
 
 #generador de codigos de reservas aleatorias
 def generate_reservation_code():
@@ -43,6 +46,29 @@ class Seat(models.Model):
         default=0.00,
         verbose_name="Precio Base"
     )
+
+    def clean(self):
+        # 🚨 NUEVA VALIDACIÓN DE CAPACIDAD 🚨
+        if self.aircraft:
+            # 1. Contar cuántos asientos ya tiene registrado ESTE avión (excluyendo el asiento actual si es una edición)
+            existing_seats_count = Seat.objects.filter(aircraft=self.aircraft).exclude(pk=self.pk).count()
+            
+            # 2. Sumarle el asiento que estamos intentando guardar (+1)
+            total_seats_if_saved = existing_seats_count + 1
+            
+            # 3. Comparar con la capacidad del avión
+            aircraft_capacity = self.aircraft.capacity
+
+            if total_seats_if_saved > aircraft_capacity:
+                raise ValidationError({
+                    'aircraft': f"Este avión (Matrícula: {self.aircraft.registration_number}) tiene una capacidad máxima de {aircraft_capacity} asientos. Ya tiene {existing_seats_count} registrados y no puede agregar más."
+                })
+        
+        # Validar unicidad del número de asiento dentro del avión (si no lo tienes ya)
+        if self.aircraft and Seat.objects.filter(aircraft=self.aircraft, seat_number=self.seat_number).exclude(pk=self.pk).exists():
+             raise ValidationError({
+                'seat_number': f"El asiento {self.seat_number} ya está registrado para el avión {self.aircraft.registration_number}."
+            })
 
     def __str__(self):
         return f"{self.seat_number} - {self.aircraft.registration_number}"
@@ -149,15 +175,83 @@ class Reservation(models.Model):
 
 #entidad boleto
 class Ticket(models.Model):
-    reservation = models.OneToOneField(Reservation, on_delete=models.CASCADE, primary_key='ticket', verbose_name="Reserva")
-    booking_reference = models.CharField(max_length=10, unique=True, default=generate_reservation_code, editable=False, verbose_name="Referencia de Billete")
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
-    issue_date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Emisión")
-    is_checked_in = models.BooleanField(default=False, verbose_name="Check-in Realizado")
+    reservation = models.OneToOneField(
+        'Reservation', 
+        on_delete=models.CASCADE, 
+        related_name='ticket',
+        verbose_name='Reserva Asociada'
+    )
+    ticket_code = models.CharField(
+        max_length=50, 
+        unique=True,
+        verbose_name='Código de Boleto'
+    )
+    issue_date = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"Billete {self.booking_reference} - ({self.reservation.passenger.last_name})"
+    price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00,
+        verbose_name='Precio del Boleto'
+    )
+    is_checked_in = models.BooleanField(
+        default=False,
+        verbose_name='Check-in Realizado'
+    )
     
+    def __str__(self):
+        return self.ticket_code
+    
+    def save(self, *args, **kwargs):
+        if not self.pk and not self.ticket_code:
+            self.ticket_code = str(uuid.uuid4())
+        
+        super().save(*args, **kwargs)
+    
+class FlightManagementForm(forms.ModelForm):
+    # Sobrescribimos el campo para usar un widget de fecha y hora más amigable
+    departure_time = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        label="Hora de Salida"
+    )
+    arrival_time = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        label="Hora de Llegada Estimada"
+    )
+
     class Meta:
-        verbose_name = "Billete"
-        verbose_name_plural = "Billetes"
+        model = Flight
+        fields = [
+            'aircraft', 
+            'flight_number', 
+            'origin',         # Ahora son CharFields simples
+            'destination',    # Ahora son CharFields simples
+            'departure_time', 
+            'arrival_time', 
+            'price'           # Usaste 'price' en el modelo, no 'base_price'
+        ]
+        labels = {
+            'aircraft': 'Avión',
+            'flight_number': 'Número de Vuelo',
+            'origin': 'Ciudad de Origen',
+            'destination': 'Ciudad de Destino',
+            'price': 'Precio Base del Vuelo' # Ajustado a 'price'
+        }
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        departure = cleaned_data.get('departure_time')
+        arrival = cleaned_data.get('arrival_time')
+        origin = cleaned_data.get('origin')
+        destination = cleaned_data.get('destination')
+        
+        # Validación 1: Hora de Salida debe ser antes de Hora de Llegada
+        if departure and arrival and departure >= arrival:
+            self.add_error('arrival_time', 'La hora de llegada debe ser posterior a la hora de salida.')
+
+        # Validación 2: Origen y Destino no deben ser iguales
+        # Esta validación es importante para CharFields.
+        if origin and destination and origin.lower() == destination.lower():
+            self.add_error('destination', 'El origen y el destino no pueden ser la misma ciudad.')
+            
+        return cleaned_data

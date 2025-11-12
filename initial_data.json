@@ -1,0 +1,407 @@
+[
+{
+    "model": "contenttypes.contenttype",
+    "pk": 1,
+    "fields": {
+        "app_label": "admin",
+        "model": "logentry"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 2,
+    "fields": {
+        "app_label": "auth",
+        "model": "permission"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 3,
+    "fields": {
+        "app_label": "auth",
+        "model": "group"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 4,
+    "fields": {
+        "app_label": "auth",
+        "model": "user"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 5,
+    "fields": {
+        "app_label": "contenttypes",
+        "model": "contenttype"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 6,
+    "fields": {
+        "app_label": "sessions",
+        "model": "session"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 7,
+    "fields": {
+        "app_label": "flights",
+        "model": "aircraft"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 8,
+    "fields": {
+        "app_label": "flights",
+        "model": "passenger"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 9,
+    "fields": {
+        "app_label": "flights",
+        "model": "reservation"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 10,
+    "fields": {
+        "app_label": "flights",
+        "model": "flight"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 11,
+    "fields": {
+        "app_label": "flights",
+        "model": "ticket"
+    }
+},
+{
+    "model": "contenttypes.contenttype",
+    "pk": 12,
+    "fields": {
+        "app_label": "flights",
+        "model": "seat"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "32digm3qtq9b0wjlb4cvyvq5x2utcei5",
+    "fields": {
+        "session_data": ".eJxVjDsOwjAQBe_iGllJNsReSvqcwXrrDw4gW8qnQtwdIqWA9s3MeymHbc1uW-LspqAuqlWn303gH7HsINxRblX7WtZ5Er0r-qCLHmuIz-vh_h1kLPlbUySQbdmYXoTQIDXB2Ah0JsF0g6RwZjBAwpbYCxELBitpaDz3nXp_APTGOGU:1vH6F5:_RAZx2W34RG1LstnNuGC9ptaPx6GrFkd-k5vwKOZ89w",
+        "expire_date": "2025-11-20T20:05:59.838Z"
+    }
+},
+{
+    "model": "sessions.session",
+    "pk": "rqhyrlm5344c7h0javs2eqpnmu9ffu78",
+    "fields": {
+        "session_data": ".eJxVjDsOwjAQBe_iGllJNsReSvqcwXrrDw4gW8qnQtwdIqWA9s3MeymHbc1uW-LspqAuqlWn303gH7HsINxRblX7WtZ5Er0r-qCLHmuIz-vh_h1kLPlbUySQbdmYXoTQIDXB2Ah0JsF0g6RwZjBAwpbYCxELBitpaDz3nXp_APTGOGU:1vIJjE:IwS0l4V12QIO7jruzWRADpxEu1ljUbkc398YMtOY5oA",
+        "expire_date": "2025-11-24T04:42:08.239Z"
+    }
+},
+{
+    "model": "flights.aircraft",
+    "pk": 1,
+    "fields": {
+        "model_name": "Boeing 737-800",
+        "registration_number": "LV-GQN",
+        "capacity": 189
+    }
+},
+{
+    "model": "flights.aircraft",
+    "pk": 2,
+    "fields": {
+        "model_name": "Airbus A320",
+        "registration_number": "A32-15",
+        "capacity": 180
+    }
+},
+{
+    "model": "flights.aircraft",
+    "pk": 3,
+    "fields": {
+        "model_name": "Antonov An-124 Ruslan:",
+        "registration_number": "336-154",
+        "capacity": 250
+    }
+},
+{
+    "model": "flights.seat",
+    "pk": 1,
+    "fields": {
+        "aircraft": 1,
+        "seat_number": "12",
+        "is_window_seat": true,
+        "seat_class": "ECONOMY",
+        "base_price": "0.00"
+    }
+},
+{
+    "model": "flights.seat",
+    "pk": 2,
+    "fields": {
+        "aircraft": 2,
+        "seat_number": "16B",
+        "is_window_seat": false,
+        "seat_class": "FIRST",
+        "base_price": "250600.00"
+    }
+},
+{
+    "model": "flights.seat",
+    "pk": 3,
+    "fields": {
+        "aircraft": 3,
+        "seat_number": "266",
+        "is_window_seat": false,
+        "seat_class": "ECONOMY",
+        "base_price": "0.00"
+    }
+},
+{
+    "model": "flights.seat",
+    "pk": 4,
+    "fields": {
+        "aircraft": 2,
+        "seat_number": "25",
+        "is_window_seat": false,
+        "seat_class": "BUSINESS",
+        "base_price": "255.00"
+    }
+},
+{
+    "model": "flights.seat",
+    "pk": 5,
+    "fields": {
+        "aircraft": 2,
+        "seat_number": "200",
+        "is_window_seat": false,
+        "seat_class": "ECONOMY",
+        "base_price": "0.00"
+    }
+},
+{
+    "model": "flights.seat",
+    "pk": 6,
+    "fields": {
+        "aircraft": 2,
+        "seat_number": "182",
+        "is_window_seat": false,
+        "seat_class": "ECONOMY",
+        "base_price": "0.00"
+    }
+},
+{
+    "model": "flights.seat",
+    "pk": 7,
+    "fields": {
+        "aircraft": 1,
+        "seat_number": "156",
+        "is_window_seat": false,
+        "seat_class": "ECONOMY",
+        "base_price": "0.00"
+    }
+},
+{
+    "model": "flights.flight",
+    "pk": 1,
+    "fields": {
+        "aircraft": 1,
+        "flight_number": "122254",
+        "origin": "Buenos Aires",
+        "destination": "Rio de Janeiro",
+        "departure_time": "2025-11-08T11:30:00Z",
+        "arrival_time": "2025-11-08T16:30:00Z",
+        "price": "0.00"
+    }
+},
+{
+    "model": "flights.flight",
+    "pk": 3,
+    "fields": {
+        "aircraft": 2,
+        "flight_number": "13362",
+        "origin": "Argentina",
+        "destination": "Cuba",
+        "departure_time": "2026-11-16T08:30:00Z",
+        "arrival_time": "2026-11-17T21:30:00Z",
+        "price": "0.00"
+    }
+},
+{
+    "model": "flights.flight",
+    "pk": 4,
+    "fields": {
+        "aircraft": 1,
+        "flight_number": "12552",
+        "origin": "Mendoza",
+        "destination": "Buenos Aires",
+        "departure_time": "2026-12-22T12:30:00Z",
+        "arrival_time": "2026-12-22T16:30:00Z",
+        "price": "0.00"
+    }
+},
+{
+    "model": "flights.flight",
+    "pk": 5,
+    "fields": {
+        "aircraft": 2,
+        "flight_number": "32659",
+        "origin": "Chubut",
+        "destination": "Cordoba",
+        "departure_time": "2026-06-25T12:30:00Z",
+        "arrival_time": "2026-06-25T19:15:00Z",
+        "price": "0.00"
+    }
+},
+{
+    "model": "flights.flight",
+    "pk": 6,
+    "fields": {
+        "aircraft": 1,
+        "flight_number": "12365",
+        "origin": "Buenos Aires",
+        "destination": "España",
+        "departure_time": "2026-05-26T16:30:00Z",
+        "arrival_time": "2026-05-27T12:45:00Z",
+        "price": "368552.00"
+    }
+},
+{
+    "model": "flights.flight",
+    "pk": 7,
+    "fields": {
+        "aircraft": 1,
+        "flight_number": "15585",
+        "origin": "Cordoba",
+        "destination": "Buenos AIRES",
+        "departure_time": "2025-11-12T12:30:00Z",
+        "arrival_time": "2025-11-12T17:30:00Z",
+        "price": "25000.00"
+    }
+},
+{
+    "model": "flights.passenger",
+    "pk": 1,
+    "fields": {
+        "first_name": "Jorge Luis",
+        "last_name": "Principi",
+        "email": "jorge@gmail.com",
+        "phone_number": "3586013503",
+        "identification_number": null,
+        "birth_date": null
+    }
+},
+{
+    "model": "flights.passenger",
+    "pk": 2,
+    "fields": {
+        "first_name": "Laura Marina",
+        "last_name": "Garcia",
+        "email": "lauramarina@gmail.com",
+        "phone_number": "3586013899",
+        "identification_number": "24333122",
+        "birth_date": null
+    }
+},
+{
+    "model": "flights.passenger",
+    "pk": 3,
+    "fields": {
+        "first_name": "Bautista Juan",
+        "last_name": "Girardi",
+        "email": "juanbauti@gmail.com",
+        "phone_number": "3583451500",
+        "identification_number": "42512111",
+        "birth_date": null
+    }
+},
+{
+    "model": "flights.passenger",
+    "pk": 4,
+    "fields": {
+        "first_name": "Bianca",
+        "last_name": "Principi",
+        "email": "bian@gmail.com",
+        "phone_number": "3586013899",
+        "identification_number": "42048630",
+        "birth_date": null
+    }
+},
+{
+    "model": "flights.passenger",
+    "pk": 5,
+    "fields": {
+        "first_name": "Analia",
+        "last_name": "Gomez",
+        "email": "analiag@gmail.com",
+        "phone_number": "3586982113",
+        "identification_number": "25368447",
+        "birth_date": "1975-10-21"
+    }
+},
+{
+    "model": "flights.reservation",
+    "pk": 1,
+    "fields": {
+        "passenger": 1,
+        "flight": 1,
+        "seat": 1,
+        "reservation_code": "6KFQH4",
+        "booking_date": "2025-11-10T05:58:47.441Z",
+        "status": "PENDING",
+        "is_confirmed": false
+    }
+},
+{
+    "model": "flights.reservation",
+    "pk": 2,
+    "fields": {
+        "passenger": 2,
+        "flight": 4,
+        "seat": 1,
+        "reservation_code": "6EMESQ",
+        "booking_date": "2025-11-11T23:10:24.397Z",
+        "status": "PENDING",
+        "is_confirmed": true
+    }
+},
+{
+    "model": "flights.reservation",
+    "pk": 3,
+    "fields": {
+        "passenger": 3,
+        "flight": 3,
+        "seat": 2,
+        "reservation_code": "DP20ZY",
+        "booking_date": "2025-11-11T23:19:44.341Z",
+        "status": "PENDING",
+        "is_confirmed": true
+    }
+},
+{
+    "model": "flights.reservation",
+    "pk": 4,
+    "fields": {
+        "passenger": 5,
+        "flight": 4,
+        "seat": 7,
+        "reservation_code": "DHCSHQ",
+        "booking_date": "2025-11-12T19:52:42.730Z",
+        "status": "PENDING",
+        "is_confirmed": false
+    }
+}

@@ -1,0 +1,42 @@
+{% extends "flights/base_dashboard.html" %}
+
+{% block title %}Asientos del Vuelo {{ flight.flight_number }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="mb-3">💺 Gestión de Asientos</h2>
+    
+    <div class="card p-3 mb-4 bg-light">
+        <h4>Vuelo Detalle</h4>
+        <p><strong>Nro. Vuelo:</strong> {{ flight.flight_number }}</p>
+        <p><strong>Ruta:</strong> {{ flight.origin }} &rarr; {{ flight.destination }}</p>
+        <p><strong>Avión:</strong> {{ aircraft.model_name }} (Capacidad: {{ aircraft.capacity }})</p>
+        <p>
+            <span class="badge bg-danger">Reservado: {{ seats|select_if_reserved|length }}</span>
+            <span class="badge bg-success">Libre: {{ seats|select_if_free|length }}</span>
+        </p>
+    </div>
+
+    <hr>
+
+    <div class="row">
+        {% for seat in seats %}
+            <div class="col-md-2 col-sm-3 col-6 mb-3">
+                <div class="text-center p-2 border rounded 
+                    {% if seat.is_reserved %}bg-danger text-white{% else %}bg-success text-white{% endif %}"
+                    data-seat-id="{{ seat.pk }}">
+                    <strong>{{ seat.seat_number }}</strong>
+                    {% if seat.is_reserved %}
+                        <small>(Ocupado)</small>
+                    {% else %}
+                        <small>(Libre)</small>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+
+    <a href="{% url 'flights:flight_list' %}" class="btn btn-secondary mt-4">Volver al Listado de Vuelos</a>
+</div>
+
+{% endblock %}

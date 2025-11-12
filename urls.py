@@ -12,10 +12,6 @@ from django.views.generic.base import RedirectView
 # Importación necesaria para cargar solo la plantilla HTML
 from django.views.generic import TemplateView
 
-# Nota: Eliminé la importación 'from django.contrib.auth import views as auth_views' 
-# ya que no usaremos su lógica de login/logout basada en sesión.
-
-
 schema_view = get_schema_view(
     openapi.Info(
         title="API Sistema de Gestion de Aerolinea (EFI)",
@@ -40,6 +36,8 @@ urlpatterns = [
     # El JavaScript dentro de esa plantilla manejará la autenticación JWT.
     path('login/', TemplateView.as_view(template_name='login.html'), name='login'),
     
+
+    path('api/v1/', include('flights.api.urls')),
     # El logout se maneja completamente en el frontend (base.html) eliminando el token.
     # Dejamos esta ruta solo si tienes otra lógica de backend que necesite limpiarse:
     # path('logout/', auth_views.LogoutView.as_view(next_page='/flights/'), name='logout'), 

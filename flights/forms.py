@@ -193,7 +193,7 @@ class TicketManagementForm(forms.ModelForm):
     """
     class Meta:
         model = Ticket
-        fields = ['reservation', 'is_checked_in', 'price'] 
+        fields = ['reservation', 'ticket_code'] 
         
         widgets = {
             'reservation': forms.Select(attrs={'class': 'form-control'}),
@@ -305,3 +305,47 @@ class UserUpdateForm(UserChangeForm):
         
         if 'password' in self.fields:
             del self.fields['password']
+
+class FlightManagementForm(forms.ModelForm):
+    departure_time = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        label="Hora de Salida"
+    )
+    arrival_time = forms.DateTimeField(
+        widget=forms.DateTimeInput(attrs={'type': 'datetime-local'}),
+        label="Hora de Llegada Estimada"
+    )
+
+    class Meta:
+        model = Flight
+        fields = [
+            'aircraft', 
+            'flight_number', 
+            'origin', 
+            'destination', 
+            'departure_time', 
+            'arrival_time', 
+            'price' 
+        ]
+        labels = {
+            'aircraft': 'Avión',
+            'flight_number': 'Número de Vuelo',
+            'origin': 'Ciudad de Origen',
+            'destination': 'Ciudad de Destino',
+            'price': 'Precio Base del Vuelo'
+        }
+        
+    def clean(self):
+        cleaned_data = super().clean()
+        departure = cleaned_data.get('departure_time')
+        arrival = cleaned_data.get('arrival_time')
+        origin = cleaned_data.get('origin')
+        destination = cleaned_data.get('destination')
+        
+        if departure and arrival and departure >= arrival:
+            self.add_error('arrival_time', 'La hora de llegada debe ser posterior a la hora de salida.')
+
+        if origin and destination and origin.lower() == destination.lower():
+            self.add_error('destination', 'El origen y el destino no pueden ser la misma ciudad.')
+            
+        return cleaned_data

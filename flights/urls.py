@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views 
+from .views import (FlightListView, FlightCreateView, FlightDeleteView, FlightUpdateView, FlightSeatManagementView)
 
 # Crea el router para las vistas de la API (REST Framework)
 router = DefaultRouter()
@@ -25,9 +26,18 @@ urlpatterns = [
 
     # GESTIÓN DE VUELOS (CRUD)
     path('dashboard/vuelos/', views.manage_flights, name='manage_flights'),
+    path('dashboard/vuelos/<int:pk>/asientos/', 
+         FlightSeatManagementView.as_view(), 
+         name='flight_seat_management'),
     path('dashboard/vuelos/crear/', views.create_flight, name='create_flight'),
     path('dashboard/vuelos/editar/<int:flight_id>/', views.edit_flight, name='edit_flight'),
     path('dashboard/vuelos/eliminar/<int:flight_id>/', views.delete_flight, name='delete_flight'),
+
+    # --- GESTIÓN DE VUELOS (CRUD) ---
+    path('dashboard/vuelos/', FlightListView.as_view(), name='flight_list'),
+    path('dashboard/vuelos/crear/', FlightCreateView.as_view(), name='flight_create'),
+    path('dashboard/vuelos/<int:pk>/editar/', FlightUpdateView.as_view(), name='flight_update'),
+    path('dashboard/vuelos/<int:pk>/eliminar/', FlightDeleteView.as_view(), name='flight_delete'),
 
     # Rutas CRUD de Reservas
     path('dashboard/reservas/', views.manage_reservations, name='manage_reservations'),
@@ -46,6 +56,12 @@ urlpatterns = [
     path('dashboard/aviones/crear/', views.create_aircraft, name='create_aircraft'),
     path('dashboard/aviones/editar/<int:aircraft_id>/', views.edit_aircraft, name='edit_aircraft'),
     path('dashboard/aviones/eliminar/<int:aircraft_id>/', views.delete_aircraft, name='delete_aircraft'),
+
+    # GESTIÓN DE AVIONES (CRUD CBVs)
+    path('dashboard/aviones/', views.AircraftListView.as_view(), name='manage_aircraft'),
+    path('dashboard/aviones/crear/', views.AircraftCreateView.as_view(), name='create_aircraft'),
+    path('dashboard/aviones/editar/<int:pk>/', views.AircraftUpdateView.as_view(), name='edit_aircraft'),
+    path('dashboard/aviones/eliminar/<int:pk>/', views.AircraftDeleteView.as_view(), name='delete_aircraft'),
 
     # Rutas CRUD de Asientos (Seat)
     path('dashboard/asientos/', views.manage_seats, name='manage_seats'),
@@ -85,7 +101,8 @@ urlpatterns = [
     path('management/passengers/<int:pk>/delete/', views.PassengerDeleteView.as_view(), name='passenger_delete'),
 
     # RUTAS API REST
-    
+    path('api/v1/', include('flights.api.urls')),
+
     # ENDPOINT DE PERFIL
     path('api/profile/', views.UserProfileAPIView.as_view(), name='api_profile'),
     

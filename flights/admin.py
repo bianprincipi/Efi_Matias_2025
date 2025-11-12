@@ -63,6 +63,18 @@ class ReservationAdmin(admin.ModelAdmin):
 # --- ADMINISTRACIÓN DE BILLETES (Ticket) ---
 @admin.register(Ticket)
 class TicketAdmin(admin.ModelAdmin):
-    list_display = ('booking_reference', 'reservation_id', 'price', 'is_checked_in', 'issue_date')
-    list_filter = ('is_checked_in', 'issue_date')
-    search_fields = ('booking_reference', 'reservation__reservation_code')
+    list_display = (
+        'get_reservation_code',  # 🚨 Usamos el nuevo método 🚨
+        'ticket_code',
+        'is_checked_in',         # Asumiendo que agregaste este campo
+        'issue_date',
+        'reservation',           # Puedes mostrar el objeto Reservation completo
+    )
+    
+    # 🚨 DEFINICIÓN DEL MÉTODO QUE ACCEDE AL CÓDIGO DE RESERVA 🚨
+    def get_reservation_code(self, obj):
+        # obj es una instancia de Ticket. 
+        # Accedemos a la Reserva (ForeignKey) y luego a su código.
+        return obj.reservation.reservation_code
+    
+    get_reservation_code.short_description = 'Cód. Reserva' # Título de la columna

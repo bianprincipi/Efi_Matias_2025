@@ -2,7 +2,7 @@ import random
 import uuid 
 import logging
 from django.shortcuts import render, get_object_or_404, redirect
-from django.db.models import Q
+from django.db.models import Q, Exists, OuterRef
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
@@ -12,6 +12,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse_lazy
 from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from django.views import View
 from rest_framework import viewsets, filters, mixins, status
 from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticated
 from rest_framework.decorators import action
@@ -21,7 +22,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .forms import (
     FlightSearchForm, ReservationForm, FlightForm, ReservationManagementForm, 
     TicketManagementForm, AircraftManagementForm, SeatManagementForm, 
-    PassengerManagementForm, UserManagementForm, UserUpdateForm 
+    PassengerManagementForm, UserManagementForm, UserUpdateForm, FlightManagementForm
 )
 from .models import Flight, Passenger, Reservation, Seat, Ticket, Aircraft 
 from .serializers import (
@@ -646,6 +647,51 @@ class AircraftViewSet(viewsets.ModelViewSet):
             "asientos": serializer.data
         })
 
+
+class AircraftListView(AdminRequiredMixin, ListView):
+    """Muestra la lista de todos los aviones."""
+    model = Aircraft
+    template_name = 'flights/aircraft/manage_aircraft.html'
+    context_object_name = 'aircrafts'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Gestión de Aviones'
+        return context
+
+class AircraftCreateView(AdminRequiredMixin, CreateView):
+    """Permite crear un nuevo registro de avión."""
+    model = Aircraft
+    form_class = AircraftManagementForm
+    template_name = 'flights/aircraft/aircraft_form.html'
+    success_url = reverse_lazy('flights:manage_aircraft')
+    
+    def form_valid(self, form):
+        messages.success(self.request, "El avión fue creado exitosamente.")
+        return super().form_valid(form)
+
+class AircraftUpdateView(AdminRequiredMixin, UpdateView):
+    """Permite editar un registro de avión existente."""
+    model = Aircraft
+    form_class = AircraftManagementForm
+    template_name = 'flights/aircraft/aircraft_form.html'
+    success_url = reverse_lazy('flights:manage_aircraft')
+    
+    def form_valid(self, form):
+        messages.success(self.request, "El avión fue actualizado exitosamente.")
+        return super().form_valid(form)
+
+class AircraftDeleteView(AdminRequiredMixin, DeleteView):
+    """Permite eliminar un registro de avión."""
+    model = Aircraft
+    template_name = 'flights/aircraft/aircraft_confirm_delete.html'
+    context_object_name = 'aircraft'
+    success_url = reverse_lazy('flights:manage_aircraft')
+    
+    def form_valid(self, form):
+        messages.success(self.request, f"Avión '{self.object}' eliminado exitosamente.")
+        return super().form_valid(form)
+
 class TicketViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
     """
     ViewSet para la Gestión de Boletos. (Solo Admin).
@@ -900,13 +946,14 @@ def delete_reservation(request, reservation_id):
         return redirect('flights:index')
 
     if request.method == 'POST':
-        # ... (lógica de eliminación) ...
         reservation = get_object_or_404(Reservation, pk=reservation_id)
-        
-        # Lógica de verificación: ¿Tiene un boleto asociado?
-        if reservation.ticket_set.count() > 0:
-            messages.error(request, f"No se puede eliminar la reserva #{reservation_id}. Debe eliminar {reservation.ticket_set.count()} boleto(s) asociado(s) primero.")
-        else:
+
+        try:
+            associated_ticket = reservation.ticket
+            
+            messages.error(request, f"No se puede eliminar la reserva #{reservation_id} porque ya tiene el boleto {associated_ticket.ticket_code} asociado.")
+            
+        except AttributeError:
             try:
                 reservation.delete()
                 messages.success(request, f"Reserva #{reservation_id} eliminada exitosamente.")
@@ -1068,7 +1115,7 @@ def create_ticket(request):
         if form.is_valid():
             ticket = form.save()  
             
-            messages.success(request, f"Boleto {ticket.booking_reference} creado exitosamente.")
+            messages.success(request, f"Boleto {ticket.ticket_code} creado exitosamente.")
             return redirect('flights:manage_tickets')
     else:
         form = TicketManagementForm()
@@ -1099,17 +1146,25 @@ def edit_ticket(request, ticket_id):
 
 @login_required
 def delete_ticket(request, ticket_id):
-    """Permite al administrador eliminar un boleto."""
-    if not request.user.is_staff:
-        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
-        return redirect('flights:index')
-
-    ticket = get_object_or_404(Ticket, pk=ticket_id)
-
+    # Solo permite la eliminación si el método es POST (seguridad)
     if request.method == 'POST':
-        ticket.delete()
-        messages.success(request, f"Boleto {ticket.ticket_code} eliminado exitosamente.")
+        ticket = get_object_or_404(Ticket, pk=ticket_id)
+        
+        try:
+            # Lógica de negocio (opcional):
+            # Si el boleto ya se usó (check-in), no se elimina, solo se cancela.
+            if ticket.is_checked_in:
+                 messages.error(request, "El boleto no se puede eliminar, ya fue usado.")
+                 return redirect('flights:ticket_list') 
+
+            # Eliminación del boleto
+            ticket.delete()
+            messages.success(request, f"Boleto {ticket.ticket_code} eliminado correctamente.")
             
+        except Exception as e:
+            # Manejo de cualquier error inesperado
+            messages.error(request, f"Error al intentar eliminar el boleto: {e}")
+
     return redirect('flights:manage_tickets')
 
 # ----------------------------------------------------
@@ -1170,3 +1225,75 @@ class UserDeleteView(AdminRequiredMixin, SuccessMessageMixin, DeleteView):
         context = super().get_context_data(**kwargs)
         context['object'] = self.object
         return context
+
+# Mixin para asegurar que solo los administradores accedan a la gestión
+class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Requiere que el usuario esté logueado y sea staff (admin)."""
+    def test_func(self):
+        # Asumiendo que is_staff determina los permisos de gestión
+        return self.request.user.is_staff
+
+# --- VISTAS CRUD DE VUELOS ---
+
+class FlightListView(StaffRequiredMixin, ListView):
+    """Muestra el listado de todos los vuelos."""
+    model = Flight
+    template_name = 'flights/dashboard/flight_list.html'
+    context_object_name = 'flights'
+    ordering = ['departure_time']
+
+class FlightCreateView(StaffRequiredMixin, CreateView):
+    """Maneja la creación de nuevos vuelos."""
+    model = Flight
+    form_class = FlightManagementForm
+    template_name = 'flights/dashboard/flight_form.html'
+    # Redirige a la lista después de crear
+    success_url = reverse_lazy('flights:flight_list') 
+
+class FlightUpdateView(StaffRequiredMixin, UpdateView):
+    """Maneja la edición de un vuelo existente."""
+    model = Flight
+    form_class = FlightManagementForm
+    template_name = 'flights/dashboard/flight_form.html'
+    success_url = reverse_lazy('flights:flight_list')
+
+class FlightDeleteView(StaffRequiredMixin, DeleteView):
+    """Maneja la confirmación y eliminación de un vuelo."""
+    model = Flight
+    template_name = 'flights/dashboard/flight_confirm_delete.html'
+    success_url = reverse_lazy('flights:flight_list')
+
+class FlightSeatManagementView(StaffRequiredMixin, View):
+    """Muestra el plano de asientos de un vuelo y permite la gestión/reserva."""
+    template_name = 'flights/dashboard/flight_seat_management.html'
+
+    def get(self, request, pk):
+        flight = get_object_or_404(Flight, pk=pk)
+        aircraft = flight.aircraft
+
+        # Obtener todos los asientos del avión
+        all_seats = Seat.objects.filter(aircraft=aircraft).order_by('seat_number')
+
+        # Determinar qué asientos están reservados para ESTE vuelo
+        # Utilizamos un Subquery/Exists para eficiencia (similar a la lógica de la API)
+        reserved_seats = all_seats.annotate(
+            is_reserved=Exists(
+                Reservation.objects.filter(
+                    flight=flight,
+                    seat=OuterRef('pk'),
+                    is_confirmed=True # Solo consideramos reservas confirmadas
+                )
+            )
+        )
+        
+        # Opcionalmente, puedes agrupar los asientos por filas o simplemente pasarlos
+        context = {
+            'flight': flight,
+            'aircraft': aircraft,
+            'seats': reserved_seats,
+            # Añade lógica para agrupar por filas si tu Seat tiene campo 'row'
+        }
+        return render(request, self.template_name, context)
+
+    # También podrías añadir un método POST para manejar la reserva/cancelación directa
+    # if request.method == 'POST': ...
