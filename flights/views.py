@@ -1,37 +1,39 @@
-#1. Librerías Estándar de Python
 import random 
 import uuid 
-# 2. Librerías de Terceros (Django, DRF, etc.)
+import logging
 from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q
 from django.contrib import messages
 from django.core.exceptions import ValidationError
 from django.contrib.auth import get_user_model
-from django.contrib.auth.decorators import login_required 
+from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.messages.views import SuccessMessageMixin
+from django.urls import reverse_lazy
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
 from rest_framework import viewsets, filters, mixins, status
 from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
-from django.urls import reverse_lazy
-from django.views.generic import ListView, CreateView, UpdateView, DeleteView
-from rest_framework import viewsets, filters, mixins, status
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.messages.views import SuccessMessageMixin
-# 3. Librerías Locales (de tu propio proyecto)
-# Importaciones de Formularios
-from .forms import FlightSearchForm, ReservationForm, FlightForm, ReservationManagementForm, TicketManagementForm, AircraftManagementForm, SeatManagementForm, PassengerForm, UserManagementForm, UserUpdateForm 
-# Importaciones de Modelos 
+from .forms import (
+    FlightSearchForm, ReservationForm, FlightForm, ReservationManagementForm, 
+    TicketManagementForm, AircraftManagementForm, SeatManagementForm, 
+    PassengerManagementForm, UserManagementForm, UserUpdateForm 
+)
 from .models import Flight, Passenger, Reservation, Seat, Ticket, Aircraft 
-# Importaciones de Serializadores y Permisos
-from .serializers import VueloSerializer, PassengerSerializer, ReservationSerializer, AircraftSerializer, SeatSerializer, TicketSerializer, UserProfileSerializer  
+from .serializers import (
+    VueloSerializer, PassengerSerializer, ReservationSerializer, AircraftSerializer, 
+    SeatSerializer, TicketSerializer, UserProfileSerializer
+)
 from .permissions import IsAirlineAdmin     
-# Importaciones de Servicios
 from .services.ticket_servide import TicketService
-from django.urls import reverse_lazy
+from .mixins import AdminRequiredMixin
+
 User = get_user_model()
+logger = logging.getLogger(__name__)
 
 # =======================================================================================
 # 1. VISTAS TRADICIONALES DE DJANGO (Retornan HTML para el Front-end)
@@ -966,28 +968,50 @@ def delete_seat(request, seat_id):
     return redirect('flights:manage_seats')
 
 # Vistas CRUD para pasajeros
-class PassengerListView(ListView):
+class PassengerListView(AdminRequiredMixin, ListView):
     model = Passenger
-    template_name = 'flights/passenger_list.html'
+    template_name = 'flights/manage_passengers.html'
     context_object_name = 'passengers'
 
-class PassengerCreateView(CreateView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Gestión de Pasajeros'
+        return context
+
+class PassengerCreateView(AdminRequiredMixin, SuccessMessageMixin, CreateView):
     model = Passenger
-    form_class = PassengerForm
+    form_class = PassengerManagementForm
     template_name = 'flights/passenger_form.html'
-    success_url = reverse_lazy('flights:passenger_list')
+    success_url = reverse_lazy('flights:manage_passengers')
+    success_message = "Pasajero '%(last_name)s, %(first_name)s' creado exitosamente."
 
-class PassengerUpdateView(UpdateView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Crear Nuevo Pasajero'
+        return context
+
+class PassengerUpdateView(AdminRequiredMixin, SuccessMessageMixin, UpdateView):
     model = Passenger
-    form_class = PassengerForm
+    form_class = PassengerManagementForm
     template_name = 'flights/passenger_form.html'
-    success_url = reverse_lazy('flights:passenger_list')
+    success_url = reverse_lazy('flights:manage_passengers')
+    success_message = "Pasajero '%(last_name)s, %(first_name)s' actualizado exitosamente."
 
-class PassengerDeleteView(DeleteView):
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Editar Pasajero'
+        return context
+
+class PassengerDeleteView(AdminRequiredMixin, SuccessMessageMixin, DeleteView):
     model = Passenger
-    template_name = 'flights/passenger_confirm_delete.html'
-    success_url = reverse_lazy('flights:passenger_list')
+    template_name = 'flights/_confirm_delete.html' 
+    success_url = reverse_lazy('flights:manage_passengers')
+    success_message = "Pasajero eliminado exitosamente."
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['object'] = self.object 
+        return context
 # =========================================================
 # VISTAS DE ADMINISTRACIÓN DE BOLETOS/TICKETS (CRUD)
 # =========================================================
@@ -1072,9 +1096,14 @@ def delete_ticket(request, ticket_id):
 # ----------------------------------------------------
 
 class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """Requiere que el usuario esté logueado y sea staff (administrador)."""
+    """
+    Mixin que requiere que el usuario esté logueado y sea staff (administrador).
+    """
     def test_func(self):
         return self.request.user.is_staff
+    def handle_no_permission(self):
+        messages.error(self.request, "Acceso denegado. Solo personal autorizado.")
+        return redirect('flights:index')
 
 class UserListView(AdminRequiredMixin, ListView):
     model = User

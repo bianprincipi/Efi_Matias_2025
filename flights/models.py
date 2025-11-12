@@ -80,7 +80,6 @@ class Flight(models.Model):
         ordering = ['departure_time']
 
 
-#entidad pasajero
 class Passenger(models.Model):
     first_name = models.CharField(max_length=30, verbose_name="Nombre")
     last_name = models.CharField(max_length=30, verbose_name="Apellido")
@@ -92,6 +91,12 @@ class Passenger(models.Model):
         unique=True,
         null=True,
         verbose_name="DNI / Pasaporte"
+    )
+    
+    birth_date = models.DateField(
+        blank=True, 
+        null=True, 
+        verbose_name="Fecha de Nacimiento"
     )
 
     def __str__(self):
