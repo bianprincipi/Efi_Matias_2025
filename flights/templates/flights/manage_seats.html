@@ -1,18 +1,19 @@
 {% extends "flights/base.html" %}
 {% load static %}
 
-{% block title %}Gestión de Aviones{% endblock %}
+{% block title  %}Gestion de Asientos{% endblock %}
 
 {% block content %}
+
 <div class="container my-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-plane"></i> Gestión de Aviones</h2>
-        <a href="{% url 'flights:create_aircraft' %}" class="btn btn-success">
-            <i class="fas fa-plus-circle"></i> Agregar Nuevo Avión
+        <h2><i class="fas fa-chair"></i>Gestion de Asientos</h2>
+        <a href="{% url 'flights:create_seat' %}" class="btn btn-success">
+            <i class="fas fa-plus-circle"></i> Agregar Nuevo Asiento
         </a>
     </div>
 
-    {% if messages %}
+    {% if message %}
         {% for message in messages %}
             <div class="alert alert-{{ message.tags }}">
                 {{ message }}
@@ -20,35 +21,37 @@
         {% endfor %}
     {% endif %}
 
-    {% if aircrafts %}
+    {% if seats %}
         <div class="table-responsive">
             <table class="table table-striped table-hover align-middle">
                 <thead class="table-dark">
                     <tr>
                         <th>ID</th>
-                        <th>Matrícula</th>
-                        <th>Modelo</th>
-                        <th>Capacidad Total</th>
+                        <th>Avion (Matricula)</th>
+                        <th>Numero de Asiento</th>
+                        <th>Clase</th>
+                        <th>Precio Base</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
-                    {% for aircraft in aircrafts %}
+                    {% for seat in seats %}
                         <tr>
-                            <td>{{ aircraft.id }}</td>
-                            <td>{{ aircraft.registration_number }}</td>
-                            <td>{{ aircraft.model_name }}</td>
-                            <td>{{ aircraft.capacity }}</td>
+                            <td>{{ seat.id }}</td>
+                            <td>{{ seat.aircraft.registration_number }}</td>
+                            <td>{{ seat.seat_number }}</td>
+                            <td>{{ seat.get_seat_class_display }}</td>
+                            <td>{{ seat.base_prince }}</td>
                             <td>
-                                <a href="{% url 'flights:edit_aircraft' aircraft.id %}" class="btn btn-sm btn-warning me-2" title="Editar">
+                                <a href="{% url 'flights:edit_seat' seat.id %}" class="btn btn-sm btn-warning me-2" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </a>
 
-                                <form action="{% url 'flights:delete_aircraft' aircraft.id %}" method="post" class="d-inline" onsubmit="return confirm('¿Estás seguro de que deseas eliminar el avión con matrícula {{ aircraft.registration_number }}? Esto también podría afectar a los asientos y vuelos asociados.')">
+                                <form action="{% url 'flights:delete_seat' seat.id %}" method="post" class="d-inline" onsubmit="return confirm('¿Estás seguro de que deseas eliminar el asiento {{seat.seat_number}} del avion {{seat.aircraft.registration_number}}?')">
                                     {% csrf_token %}
                                     <button type="submit" class="btn btn-sm btn-danger" title="Eliminar">
                                         <i class="fas fa-trash"></i>
-                                    </button>
+                                    </butto>
                                 </form>
                             </td>
                         </tr>
@@ -58,15 +61,14 @@
         </div>
     {% else %}
         <div class="alert alert-info">
-            No hay aviones registrados en el sistema.
+            No hay asientos registrados en el sistema.
         </div>
     {% endif %}
-    
+
     <div class="mt-4">
         <a href="{% url 'flights:admin_dashboard' %}" class="btn btn-secondary">
             <i class="fas fa-arrow-left"></i> Volver al Dashboard
         </a>
     </div>
-
 </div>
 {% endblock %}

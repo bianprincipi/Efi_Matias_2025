@@ -1,0 +1,80 @@
+{% extends "flights/base.html" %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            
+            <h2 class="mb-4">
+                <i class="fas fa-user-circle"></i> {{ page_title }}
+            </h2>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    
+                    <form method="post" class="form-horizontal">
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                            <div class="alert alert-danger">
+                                <strong>¡Error al guardar!</strong> Por favor, corrige los campos marcados.
+                            </div>
+                        {% endif %}
+
+                        {% for field in form %}
+                        <div class="mb-3">
+                            
+                            {# 🚨 CORRECCIÓN: Separar Checkboxes de campos de texto 🚨 #}
+                            {% if field.field.widget.input_type == 'checkbox' %}
+                                
+                                <div class="form-check">
+                                    {# Renderiza la casilla SIN form-control #}
+                                    {{ field|add_class:"form-check-input" }} 
+                                    <label class="form-check-label" for="{{ field.id_for_label }}">
+                                        {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}
+                                    </label>
+                                </div>
+                                
+                            {% else %}
+                            
+                                <label for="{{ field.id_for_label }}" class="form-label">
+                                    {{ field.label }}{% if field.field.required %} <span class="text-danger">*</span>{% endif %}:
+                                </label>
+                                
+                                {# Renderiza el campo de texto CON form-control #}
+                                {{ field|add_class:"form-control" }}
+                            
+                            {% endif %}
+                            
+                            {# Mensajes de Ayuda y Errores (Aplicables a ambos tipos de campo) #}
+                            {% if field.help_text %}
+                                <div class="form-text text-muted">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% for error in field.errors %}
+                                <div class="alert alert-danger mt-1">{{ error }}</div>
+                            {% endfor %}
+                            
+                        </div>
+                        {% endfor %}
+
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                            <a href="{% url 'flights:manage_users' %}" class="btn btn-secondary me-md-2">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Guardar Usuario
+                            </button>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

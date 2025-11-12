@@ -1,0 +1,71 @@
+{% extends "flights/base.html" %}
+{% load static %}
+
+{% block title %}Gestión de Pasajeros{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-users"></i> Gestión de Pasajeros</h2>
+        
+        <a href="{% url 'flights:passenger_create' %}" class="btn btn-success">
+            <i class="fas fa-plus-circle"></i> Agregar Nuevo Pasajero
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    {% if passengers %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre Completo</th>
+                        <th>Identificación</th>
+                        <th>Email</th>
+                        <th>Teléfono</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for passenger in passengers %}
+                        <tr>
+                            <td>{{ passenger.id }}</td>
+                            <td>{{ passenger.first_name }} {{ passenger.last_name }}</td>
+                            <td>{{ passenger.identification_number }}</td>
+                            <td>{{ passenger.email }}</td>
+                            <td>{{ passenger.phone_number }}</td> 
+                            <td>
+                                <a href="{% url 'flights:passenger_update' passenger.id %}" class="btn btn-sm btn-warning me-2" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'flights:passenger_delete' passenger.id %}" class="btn btn-sm btn-danger" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            No hay pasajeros registrados en el sistema. Puedes agregar uno usando el botón de arriba.
+        </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{% url 'flights:admin_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+
+</div>
+{% endblock %}

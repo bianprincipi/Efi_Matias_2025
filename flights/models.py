@@ -37,6 +37,13 @@ class Seat(models.Model):
     ]
     seat_class = models.CharField(max_length=10, choices=CLASS_CHOICES, verbose_name="Clase de Asiento")
 
+    base_price = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00,
+        verbose_name="Precio Base"
+    )
+
     def __str__(self):
         return f"{self.seat_number} - {self.aircraft.registration_number}"
     
@@ -79,6 +86,13 @@ class Passenger(models.Model):
     last_name = models.CharField(max_length=30, verbose_name="Apellido")
     email = models.EmailField(unique=True, verbose_name="Correo Electrónico")
     phone_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="Número de Teléfono")
+
+    identification_number = models.CharField(
+        max_length=50,
+        unique=True,
+        null=True,
+        verbose_name="DNI / Pasaporte"
+    )
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"

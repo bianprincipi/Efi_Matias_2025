@@ -1,5 +1,10 @@
 from django import forms
-from .models import Reservation, Flight, Seat, Passenger, Ticket
+from .models import Reservation, Flight, Seat, Passenger, Ticket, Aircraft
+from django.contrib.auth.forms import UserCreationForm, UserChangeForm
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
 
 
 # 1. Formulario de Búsqueda de Vuelos
@@ -126,6 +131,19 @@ class FlightForm(forms.ModelForm):
             'aircraft': forms.Select(attrs={'class': 'form-control'}),
         }
 
+class PassengerForm(forms.ModelForm):
+    class Meta:
+        model = Passenger
+        fields = ['first_name', 'last_name', 'email', 'phone_number', 'identification_number'] 
+        widgets = {
+            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control'}),
+            'phone': forms.TextInput(attrs={'class': 'form-control'}),
+            'identification_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
+        }
+
 # =========================================================
 # FORMULARIO DE GESTIÓN DE RESERVAS (CRUD ADMINISTRACIÓN)
 # =========================================================
@@ -164,12 +182,13 @@ class TicketManagementForm(forms.ModelForm):
     class Meta:
         model = Ticket
         # Un boleto solo necesita ser asociado a una Reserva y tiene un estado de check-in.
-        fields = ['reservation', 'is_checked_in'] 
+        fields = ['reservation', 'is_checked_in', 'price'] 
         
         widgets = {
             'reservation': forms.Select(attrs={'class': 'form-control'}),
             'is_checked_in': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-        }
+            'price': forms.NumberInput(attrs={'step': '0.01', 'min': '0'}),
+        } 
         
     def clean_ticket_code(self):
         """Asegura que el código se autogenere si es un registro nuevo y el campo está vacío."""
@@ -182,3 +201,97 @@ class TicketManagementForm(forms.ModelForm):
             ticket_code = str(uuid.uuid4()).split('-')[-1].upper()
         
         return ticket_code
+    
+# =========================================================
+# FORMULARIOS DE GESTIÓN DE AVIONES (CRUD ADMINISTRACIÓN)
+# =========================================================
+class AircraftManagementForm(forms.ModelForm):
+    """
+    Formulario para Crear y Editar Aviones (usado por el administrador).
+    """
+    class Meta:
+        model = Aircraft
+        fields = ['registration_number', 'model_name', 'capacity']
+        widgets = {
+            'registration_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: A320-100'}),
+            'model_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Boeing 737'}),
+            'capacity': forms.NumberInput(attrs={'class': 'form-control', 'min': 10}),
+        }
+
+# =========================================================
+# FORMULARIOS DE GESTIÓN DE ASIENTOS (CRUD ADMINISTRACIÓN)
+# =========================================================
+class SeatManagementForm(forms.ModelForm):
+    """
+    Formulario para Crear y Editar Asientos (usado por el administrador).
+    """
+    class Meta:
+        model = Seat
+        fields = ['aircraft', 'seat_number', 'seat_class', 'base_price']
+        widgets = {
+            'aircraft': forms.Select(attrs={'class': 'form-control'}),
+            'seat_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: 15A o 45C'}),
+            'seat_class': forms.Select(attrs={'class': 'form-control'}),
+            'base_price': forms.NumberInput(attrs={'class': 'form-control', 'min': 0, 'step': 0.01}),
+        }
+
+class UserManagementForm(UserCreationForm):
+    """
+    Formulario utilizado por el administrador para crear nuevos usuarios.
+    Hereda de UserCreationForm para asegurar el hashing de la contraseña.
+    """
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active')
+        
+        widgets = {
+            'is_staff': forms.CheckboxInput(), 
+            'is_active': forms.CheckboxInput(), 
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        self.fields['username'].label = 'Nombre de Usuario'
+        self.fields['email'].label = 'Correo Electrónico'
+        self.fields['email'].required = True
+        self.fields['first_name'].label = 'Nombre'
+        self.fields['last_name'].label = 'Apellido'
+        self.fields['is_staff'].label = '¿Es Administrador (Staff)?'
+        self.fields['is_active'].label = '¿Está Activo?'
+
+        if 'password2' in self.fields:
+            self.fields['password2'].label = 'Confirmación de contraseña'
+            self.fields['password2'].help_text = 'Tu contraseña no puede ser similar a tu otra información personal. Debe contener al menos 8 caracteres.'
+
+class UserUpdateForm(UserChangeForm):
+    """
+    Formulario utilizado por el administrador para editar usuarios existentes.
+    No requiere la contraseña anterior.
+    """
+    password = None 
+
+    class Meta:
+        model = User
+        fields = ('username', 'email', 'first_name', 'last_name', 'is_staff', 'is_active')
+        
+        widgets = {
+            'is_staff': forms.CheckboxInput(),
+            'is_active': forms.CheckboxInput(),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # 🚨 CORRECCIÓN 4: Sobreescribir labels para la traducción 🚨
+        self.fields['username'].label = 'Nombre de Usuario'
+        self.fields['email'].label = 'Correo Electrónico'
+        self.fields['email'].required = True
+        self.fields['first_name'].label = 'Nombre'
+        self.fields['last_name'].label = 'Apellido'
+        self.fields['is_staff'].label = '¿Es Administrador (Staff)?'
+        self.fields['is_active'].label = '¿Está Activo?'
+        
+        # Quitar el campo 'password' para evitar complejidad innecesaria
+        if 'password' in self.fields:
+            del self.fields['password']

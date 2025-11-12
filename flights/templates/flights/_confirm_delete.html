@@ -1,0 +1,46 @@
+{% extends "flights/base.html" %}
+{% load static %}
+
+{% block title %}Confirmar Eliminación{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card border-danger shadow-lg">
+                <div class="card-header bg-danger text-white">
+                    <h4 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Confirmar Eliminación</h4>
+                </div>
+                <div class="card-body">
+                    <p class="lead">
+                        Estás a punto de eliminar el siguiente registro:
+                    </p>
+                    
+                    {# 🚨 Muestra el nombre del objeto a eliminar (Usa su método __str__ o .username) 🚨 #}
+                    <h3 class="text-danger mb-4">
+                        "{{ object }}"
+                    </h3>
+                    
+                    <p>
+                        **Esta acción es irreversible.** ¿Estás seguro de que deseas continuar?
+                    </p>
+                    
+                    <form method="post" class="mt-4">
+                        {% csrf_token %}
+                        
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-danger btn-lg">
+                                <i class="fas fa-trash"></i> Sí, Eliminar Permanentemente
+                            </button>
+                            {# El botón Cancelar regresa a la página anterior #}
+                            <a href="javascript:history.back()" class="btn btn-secondary btn-lg">
+                                <i class="fas fa-times"></i> Cancelar
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

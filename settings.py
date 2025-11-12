@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework', 
     'rest_framework_simplejwt', 
     'drf_yasg',
+    'widget_tweaks',
 ]
 
 MIDDLEWARE = [
@@ -106,7 +107,7 @@ AUTH_PASSWORD_VALIDATORS = [
 # Internationalization
 # https://docs.djangoproject.com/en/5.2/topics/i18n/
 
-LANGUAGE_CODE = 'en-us'
+LANGUAGE_CODE = 'en'
 
 TIME_ZONE = 'UTC'
 
@@ -128,9 +129,6 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
-# ---------------------------------------------
-# 💥 AÑADIDO: Configuración de Django Rest Framework (DRF)
-# ---------------------------------------------
 REST_FRAMEWORK = {
     # Renderers: Mantenemos el navegador para desarrollo
     'DEFAULT_RENDERER_CLASSES': [

@@ -15,9 +15,14 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django_filters.rest_framework import DjangoFilterBackend
+from django.urls import reverse_lazy
+from django.views.generic import ListView, CreateView, UpdateView, DeleteView
+from rest_framework import viewsets, filters, mixins, status
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.messages.views import SuccessMessageMixin
 # 3. Librerías Locales (de tu propio proyecto)
 # Importaciones de Formularios
-from .forms import FlightSearchForm, ReservationForm, FlightForm, ReservationManagementForm, TicketManagementForm
+from .forms import FlightSearchForm, ReservationForm, FlightForm, ReservationManagementForm, TicketManagementForm, AircraftManagementForm, SeatManagementForm, PassengerForm, UserManagementForm, UserUpdateForm 
 # Importaciones de Modelos 
 from .models import Flight, Passenger, Reservation, Seat, Ticket, Aircraft 
 # Importaciones de Serializadores y Permisos
@@ -25,14 +30,12 @@ from .serializers import VueloSerializer, PassengerSerializer, ReservationSerial
 from .permissions import IsAirlineAdmin     
 # Importaciones de Servicios
 from .services.ticket_servide import TicketService
-
+from django.urls import reverse_lazy
 User = get_user_model()
 
 # =======================================================================================
 # 1. VISTAS TRADICIONALES DE DJANGO (Retornan HTML para el Front-end)
 # =======================================================================================
-
-# Vistas existentes (index, search_flights, flight_detail, etc.) ...
 def index(request):
     search_form = FlightSearchForm()
     try: 
@@ -663,6 +666,81 @@ class TicketViewSet(viewsets.GenericViewSet, mixins.RetrieveModelMixin):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 # =========================================================
+# VISTAS DE ADMINISTRACIÓN DE AVIONES (CRUD)
+# =========================================================
+
+@login_required
+def manage_aircrafts(request):
+    """Muestra la lista de aviones (Aircraft)."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+    
+    aircrafts = Aircraft.objects.all().order_by('registration_number')
+    context = {'aircrafts': aircrafts}
+    return render(request, 'flights/manage_aircrafts.html', context)
+
+@login_required
+def create_aircraft(request):
+    """Permite al administrador crear un nuevo avión."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+    
+    if request.method == 'POST':
+        form = AircraftManagementForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Avión creado exitosamente.")
+            return redirect('flights:manage_aircrafts')
+    else:
+        form = AircraftManagementForm()
+        
+    context = {'form': form, 'page_title': 'Agregar Nuevo Avión'}
+    # Nota: Asegúrate de tener la plantilla 'flights/aircraft_form.html'
+    return render(request, 'flights/aircraft_form.html', context)
+
+@login_required
+def edit_aircraft(request, aircraft_id):
+    """Permite al administrador editar un avión existente."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+    
+    aircraft = get_object_or_404(Aircraft, pk=aircraft_id)
+    
+    if request.method == 'POST':
+        form = AircraftManagementForm(request.POST, instance=aircraft)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Avión {aircraft.registration_number} actualizado exitosamente.")
+            return redirect('flights:manage_aircrafts')
+    else:
+        form = AircraftManagementForm(instance=aircraft)
+        
+    context = {'form': form, 'page_title': f'Editar Avión {aircraft.registration_number}', 'aircraft': aircraft}
+    return render(request, 'flights/aircraft_form.html', context)
+
+@login_required
+def delete_aircraft(request, aircraft_id):
+    """Permite al administrador eliminar un avión."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+
+    aircraft = get_object_or_404(Aircraft, pk=aircraft_id)
+
+    if request.method == 'POST':
+        # VERIFICACIÓN DE INTEGRIDAD: No eliminar si hay vuelos asociados
+        if aircraft.flight_set.exists():
+            messages.error(request, f"No se puede eliminar el avión {aircraft.registration_number} porque tiene vuelos asignados. Elimine los vuelos primero.")
+        else:
+            aircraft.delete()
+            messages.success(request, f"Avión {aircraft.registration_number} eliminado exitosamente.")
+            
+    return redirect('flights:manage_aircrafts')
+
+# =========================================================
 # VISTAS DE ADMINISTRACIÓN DE BOLETOS (CRUD)
 # =========================================================
 
@@ -813,3 +891,232 @@ def delete_reservation(request, reservation_id):
                 messages.error(request, f"Error al eliminar la reserva: {e}")
             
     return redirect('flights:manage_reservations')
+
+# =========================================================
+# VISTAS DE ADMINISTRACIÓN DE ASIENTOS (CRUD)
+# =========================================================
+
+@login_required
+def manage_seats(request):
+    """Muestra la lista de asientos (Seat)."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+    
+    seats = Seat.objects.select_related('aircraft').all().order_by('aircraft__registration_number', 'seat_number')
+    context = {'seats': seats}
+    return render(request, 'flights/manage_seats.html', context)
+
+@login_required
+def create_seat(request):
+    """Permite al administrador crear un nuevo asiento."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+    
+    if request.method == 'POST':
+        form = SeatManagementForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Asiento creado exitosamente.")
+            return redirect('flights:manage_seats')
+    else:
+        form = SeatManagementForm()
+        
+    context = {'form': form, 'page_title': 'Agregar Nuevo Asiento'}
+    return render(request, 'flights/seat_form.html', context)
+
+@login_required
+def edit_seat(request, seat_id):
+    """Permite al administrador editar un asiento existente."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+    
+    seat = get_object_or_404(Seat, pk=seat_id)
+    
+    if request.method == 'POST':
+        form = SeatManagementForm(request.POST, instance=seat)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Asiento {seat.seat_number} actualizado exitosamente.")
+            return redirect('flights:manage_seats')
+    else:
+        form = SeatManagementForm(instance=seat)
+        
+    context = {'form': form, 'page_title': f'Editar Asiento {seat.seat_number}', 'seat': seat}
+    return render(request, 'flights/seat_form.html', context)
+
+@login_required
+def delete_seat(request, seat_id):
+    """Permite al administrador eliminar un asiento."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+
+    seat = get_object_or_404(Seat, pk=seat_id)
+
+    if request.method == 'POST':
+        if seat.reservation_set.exists():
+            messages.error(request, f"No se puede eliminar el asiento {seat.seat_number} porque está asociado a una o más reservas.")
+        else:
+            seat.delete()
+            messages.success(request, f"Asiento {seat.seat_number} eliminado exitosamente.")
+            
+    return redirect('flights:manage_seats')
+
+# Vistas CRUD para pasajeros
+class PassengerListView(ListView):
+    model = Passenger
+    template_name = 'flights/passenger_list.html'
+    context_object_name = 'passengers'
+
+class PassengerCreateView(CreateView):
+    model = Passenger
+    form_class = PassengerForm
+    template_name = 'flights/passenger_form.html'
+    success_url = reverse_lazy('flights:passenger_list')
+
+class PassengerUpdateView(UpdateView):
+    model = Passenger
+    form_class = PassengerForm
+    template_name = 'flights/passenger_form.html'
+    success_url = reverse_lazy('flights:passenger_list')
+
+class PassengerDeleteView(DeleteView):
+    model = Passenger
+    template_name = 'flights/passenger_confirm_delete.html'
+    success_url = reverse_lazy('flights:passenger_list')
+
+# =========================================================
+# VISTAS DE ADMINISTRACIÓN DE BOLETOS/TICKETS (CRUD)
+# =========================================================
+
+@login_required
+def manage_tickets(request):
+    """Muestra la lista de boletos (Tickets)."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+    
+    # Usamos select_related para minimizar consultas, accediendo a Reservation, Flight y Passenger
+    tickets = Ticket.objects.select_related(
+        'reservation', 
+        'reservation__flight', 
+        'reservation__passenger'
+    ).all().order_by('-reservation__flight__departure_time')
+    
+    context = {'tickets': tickets}
+    return render(request, 'flights/manage_tickets.html', context)
+
+@login_required
+def create_ticket(request):
+    """Permite al administrador crear un nuevo boleto."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+    
+    page_title = 'Agregar Nuevo Boleto' # Define el título aquí para el contexto
+
+    if request.method == 'POST':
+        form = TicketManagementForm(request.POST)
+        if form.is_valid():
+            ticket = form.save()  
+            
+            messages.success(request, f"Boleto {ticket.booking_reference} creado exitosamente.")
+            return redirect('flights:manage_tickets')
+    else:
+        form = TicketManagementForm()
+        
+    context = {'form': form, 'page_title': page_title}
+    return render(request, 'flights/ticket_form.html', context)
+
+@login_required
+def edit_ticket(request, ticket_id):
+    """Permite al administrador editar un boleto existente."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+    
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+    
+    if request.method == 'POST':
+        form = TicketManagementForm(request.POST, instance=ticket)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"Boleto {ticket.ticket_code} actualizado exitosamente.")
+            return redirect('flights:manage_tickets')
+    else:
+        form = TicketManagementForm(instance=ticket)
+        
+    context = {'form': form, 'page_title': f'Editar Boleto {ticket.ticket_code}', 'ticket': ticket}
+    return render(request, 'flights/ticket_form.html', context)
+
+@login_required
+def delete_ticket(request, ticket_id):
+    """Permite al administrador eliminar un boleto."""
+    if not request.user.is_staff:
+        messages.error(request, "Acceso denegado. Se requiere ser administrador.")
+        return redirect('flights:index')
+
+    ticket = get_object_or_404(Ticket, pk=ticket_id)
+
+    if request.method == 'POST':
+        ticket.delete()
+        messages.success(request, f"Boleto {ticket.ticket_code} eliminado exitosamente.")
+            
+    return redirect('flights:manage_tickets')
+
+# ----------------------------------------------------
+# VISTAS DE GESTIÓN DE CUENTAS DE USUARIO (ADMIN CRUD)
+# ----------------------------------------------------
+
+class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+    """Requiere que el usuario esté logueado y sea staff (administrador)."""
+    def test_func(self):
+        return self.request.user.is_staff
+
+class UserListView(AdminRequiredMixin, ListView):
+    model = User
+    template_name = 'flights/manage_users.html'
+    context_object_name = 'users'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Gestión de Cuentas de Usuario'
+        return context
+
+class UserCreateView(AdminRequiredMixin, SuccessMessageMixin, CreateView):
+    model = User
+    form_class = UserManagementForm
+    template_name = 'flights/user_form.html'
+    success_url = reverse_lazy('flights:manage_users')
+    success_message = "Usuario '%(username)s' creado exitosamente."
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Crear Nuevo Usuario'
+        return context
+
+class UserUpdateView(AdminRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = User
+    form_class = UserUpdateForm
+    template_name = 'flights/user_form.html'
+    success_url = reverse_lazy('flights:manage_users')
+    success_message = "Usuario '%(username)s' actualizado exitosamente."
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['page_title'] = 'Editar Usuario'
+        return context
+
+class UserDeleteView(AdminRequiredMixin, SuccessMessageMixin, DeleteView):
+    model = User
+    template_name = 'flights/_confirm_delete.html' 
+    success_url = reverse_lazy('flights:manage_users')
+    success_message = "Usuario eliminado exitosamente."
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['object'] = self.object
+        return context

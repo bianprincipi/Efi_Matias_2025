@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="admin-dashboard-container">
-    <header class="dashboard-header">
+<div class="admin-dashboard-container container my-5">
+    <header class="dashboard-header mb-4">
         <h1>👋 Panel de Control de Administrador</h1>
         <p class="user-greeting">Bienvenido, {{ request.user.username }}. Gestiona tu aerolínea eficientemente.</p>
     </header>
@@ -12,9 +12,10 @@
 
     <div class="row"> 
         
+        {# 1. GESTIÓN DE VUELOS #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
-                <a href="/flights/dashboard/vuelos/" class="card-link-card text-decoration-none text-dark"> 
+                <a href="{% url 'flights:manage_flights' %}" class="card-link-card text-decoration-none text-dark"> 
                     <div class="card-body text-center">
                         <span class="h1 d-block text-primary"><i class="fas fa-plane"></i></span>
                         <h5 class="card-title mt-2">Vuelos</h5>
@@ -24,47 +25,77 @@
             </div>
         </div>
         
+        {# 2. GESTIÓN DE RESERVAS #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
-                <a href="/flights/dashboard/reservas/" class="card-link-card text-decoration-none text-dark">
+                <a href="{% url 'flights:manage_reservations' %}" class="card-link-card text-decoration-none text-dark">
                     <div class="card-body text-center">
-                        <span class="h1 d-block text-success"><i class="fas fa-ticket-alt"></i></span>
-                        <h5 class="card-title mt-2">Reservas y Boletos</h5>
+                        <span class="h1 d-block text-success"><i class="fas fa-bookmark"></i></span>
+                        <h5 class="card-title mt-2">Reservas</h5>
                         <p class="text-muted small">Revisar, confirmar o cancelar reservas de clientes.</p>
                     </div>
                 </a>
             </div>
         </div>
         
+        {# 3. GESTIÓN DE BOLETOS/TICKETS (Nuevo o Separado) #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
-                <a href="/flights/dashboard/aviones/" class="card-link-card text-decoration-none text-dark">
+                <a href="{% url 'flights:manage_tickets' %}" class="card-link-card text-decoration-none text-dark">
                     <div class="card-body text-center">
-                        <span class="h1 d-block text-info"><i class="fas fa-helicopter"></i></span>
-                        <h5 class="card-title mt-2">Aviones y Asientos</h5>
-                        <p class="text-muted small">Configurar modelos de aeronaves y sus layouts.</p>
+                        <span class="h1 d-block text-info"><i class="fas fa-ticket-alt"></i></span>
+                        <h5 class="card-title mt-2">Boletos / Tickets</h5>
+                        <p class="text-muted small">Administración de boletos emitidos por reserva.</p>
                     </div>
                 </a>
             </div>
         </div>
         
+        {# 4. GESTIÓN DE AVIONES #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
-                <a href="/flights/dashboard/pasajeros/" class="card-link-card text-decoration-none text-dark">
+                <a href="{% url 'flights:manage_aircrafts' %}" class="card-link-card text-decoration-none text-dark">
                     <div class="card-body text-center">
-                        <span class="h1 d-block text-warning"><i class="fas fa-users"></i></span>
+                        <span class="h1 d-block text-warning"><i class="fas fa-helicopter"></i></span>
+                        <h5 class="card-title mt-2">Aviones</h5>
+                        <p class="text-muted small">Configurar modelos de aeronaves.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+        
+        {# 5. GESTIÓN DE ASIENTOS #}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <a href="{% url 'flights:manage_seats' %}" class="card-link-card text-decoration-none text-dark">
+                    <div class="card-body text-center">
+                        <span class="h1 d-block text-secondary"><i class="fas fa-chair"></i></span>
+                        <h5 class="card-title mt-2">Asientos</h5>
+                        <p class="text-muted small">Configurar layout y precios por clase.</p>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        {# 6. GESTIÓN DE PASAJEROS (URL corregida a la vista de clase) #}
+        <div class="col-md-4 mb-4">
+            <div class="card shadow-sm h-100">
+                <a href="{% url 'flights:passenger_list' %}" class="card-link-card text-decoration-none text-dark">
+                    <div class="card-body text-center">
+                        <span class="h1 d-block text-danger"><i class="fas fa-users"></i></span>
                         <h5 class="card-title mt-2">Pasajeros</h5>
-                        <p class="text-muted small">Ver y administrar perfiles de pasajeros.</p>
+                        <p class="text-muted small">Ver y administrar perfiles de pasajeros (CRUD).</p>
                     </div>
                 </a>
             </div>
         </div>
         
+        {# 7. GESTIÓN DE USUARIOS #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
-                <a href="/flights/dashboard/usuarios/" class="card-link-card text-decoration-none text-dark">
+                <a href="{% url 'flights:manage_users' %}" class="card-link-card text-decoration-none text-dark">
                     <div class="card-body text-center">
-                        <span class="h1 d-block text-danger"><i class="fas fa-user-tie"></i></span>
+                        <span class="h1 d-block text-primary"><i class="fas fa-user-tie"></i></span>
                         <h5 class="card-title mt-2">Cuentas de Usuario</h5>
                         <p class="text-muted small">Administración de staff y perfiles de clientes.</p>
                     </div>
@@ -74,15 +105,6 @@
         
     </div>
     
-    <div class="management-section mt-5">
-        <h2>📊 Gestión de Recursos (API)</h2>
-        <p>Funcionalidades críticas accesibles vía API o Django Admin:</p>
-        <ul class="management-list">
-            <li><span class="emoji">🚀</span> **Creación de Vuelos:** Definir nuevas rutas y horarios.</li>
-            <li><span class="emoji">💺</span> **Gestión de Layouts:** Configurar aviones y sus asientos.</li>
-            <li><span class="emoji">📋</span> **Reportes de Pasajeros:** Obtener listados por número de vuelo.</li>
-        </ul>
-    </div>
 
 </div>
 {% endblock %}

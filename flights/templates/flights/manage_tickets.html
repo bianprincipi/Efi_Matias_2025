@@ -1,0 +1,67 @@
+{% extends "flights/base.html" %}
+{% load static %}
+
+{% block title %}Gestión de Boletos{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-ticket-alt"></i> Gestión de Boletos</h2>
+        <a href="{% url 'flights:create_ticket' %}" class="btn btn-success">
+            <i class="fas fa-plus-circle"></i> Crear Nuevo Boleto
+        </a>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endfor %}
+    {% endif %}
+
+    {% if tickets %}
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Código</th>
+                        <th>Vuelo</th>
+                        <th>Pasajero</th>
+                        <th>Clase / Asiento</th>
+                        <th>Precio Pagado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ticket in tickets %}
+                        <tr>
+                            <td>{{ ticket.ticket_code }}</td>
+                            <td>{{ ticket.reservation.flight.flight_number }} ({{ ticket.reservation.flight.departure_airport }} -> {{ ticket.reservation.flight.arrival_airport }})</td>
+                            <td>{{ ticket.reservation.passenger.first_name }} {{ ticket.reservation.passenger.last_name }}</td>
+                            <td>{{ ticket.seat.seat_class }} / {{ ticket.seat.seat_number }}</td>
+                            <td>${{ ticket.price }}</td>
+                            <td>
+                                <a href="{% url 'flights:edit_ticket' ticket.pk %}" class="btn btn-sm btn-info me-2">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'flights:delete_ticket' ticket.pk %}" class="btn btn-sm btn-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div class="alert alert-info">
+            No hay boletos emitidos en el sistema.
+        </div>
+    {% endif %}
+    
+    <div class="mt-4">
+        <a href="{% url 'flights:admin_dashboard' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver al Dashboard
+        </a>
+    </div>
+</div>
+{% endblock %}
