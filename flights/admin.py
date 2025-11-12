@@ -18,7 +18,7 @@ class ReservationInline(admin.TabularInline):
 # --- ADMINISTRACIÓN DE AVIONES (Aircraft) ---
 @admin.register(Aircraft)
 class AircraftAdmin(admin.ModelAdmin):
-    list_display = ('registration_number', 'model_name', 'capacity') # Nota: Cambié 'model' por 'model_name' para coincidir con tu modelo
+    list_display = ('registration_number', 'model', 'capacity') # Nota: Cambié 'model' por 'model_name' para coincidir con tu modelo
     search_fields = ('registration_number', 'model_name')
     inlines = [SeatInline] # <-- AGREGADO: Muestra los asientos del avión
 
@@ -48,8 +48,8 @@ class FlightAdmin(admin.ModelAdmin):
 # --- ADMINISTRACIÓN DE PASAJEROS (Passenger) ---
 @admin.register(Passenger)
 class PassengerAdmin(admin.ModelAdmin):
-    list_display = ('last_name', 'first_name', 'email', 'phone_number')
-    search_fields = ('last_name', 'first_name', 'email')
+    list_display = ('apellido', 'nombre', 'email', 'telefono')
+    search_fields = ('apellido', 'nombre', 'email')
 
 # --- ADMINISTRACIÓN DE RESERVAS (Reservation) ---
 @admin.register(Reservation)

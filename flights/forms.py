@@ -1,6 +1,6 @@
 from django import forms
 from django.db import models
-from .models import Reservation, Flight, Seat, Passenger, Ticket, Aircraft
+from .models import Reservation, Flight, Seat, Passenger, Ticket, Aircraft, Airport
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth import get_user_model
 
@@ -35,22 +35,37 @@ class FlightSearchForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
+        CITY_CHOICES = [('', '--- Todos ---')] # Inicia siempre con 'Todos'
+        
         try:
-            cities = Flight.objects.values_list('origin', 'destination').distinct()
+            active_flights = Flight.objects.filter(status__in=['SCH', 'ACT'])
             
-            unique_cities = set()
-            for origin, destination in cities:
-                unique_cities.add(origin)
-                unique_cities.add(destination)
+            origins = active_flights.values_list('origin', flat=True)
+            destinations = active_flights.values_list('destination', flat=True)
             
-            CITY_CHOICES = sorted([(city, city) for city in unique_cities])
-            CITY_CHOICES.insert(0, ('', '--- Todos ---'))
+            unique_cities = sorted(set(list(origins) + list(destinations)))
             
-            self.fields['origin'].choices = CITY_CHOICES
-            self.fields['destination'].choices = CITY_CHOICES
+            for city in unique_cities:
+                CITY_CHOICES.append((city, city)) 
             
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"ERROR al cargar selectores de ciudades en FlightSearchForm: {e}")
+            pass 
+            
+        self.fields['origin'].choices = CITY_CHOICES
+        self.fields['destination'].choices = CITY_CHOICES
+
+    def clean(self):
+        cleaned_data = super().clean()
+        origin_id = cleaned_data.get('origin')
+        destination_id = cleaned_data.get('destination')
+
+        if origin_id and destination_id and origin_id == destination_id:
+            origin_airport = Airport.objects.get(id=origin_id)
+            raise forms.ValidationError(
+                f"El origen ({origin_airport.city}) y el destino no pueden ser la misma ciudad."
+            )
+        return cleaned_data
 
 # =========================================================
 # 2. FORMULARIO DE RESERVAS (PÚBLICO)
@@ -114,19 +129,27 @@ class FlightForm(forms.ModelForm):
 
 # =========================================================
 # 4. FORMULARIO DE PASAJEROS (PÚBLICO/GENÉRICO)
-# 🚨 NOTA: Este fue duplicado/conflictivo, lo mantengo por si es usado en otro lado 🚨
 # =========================================================
 class PassengerForm(forms.ModelForm):
     class Meta:
         model = Passenger
-        # Asumo que estos son los nombres de campo correctos en tu modelo Passenger
-        fields = ['first_name', 'last_name', 'email', 'phone_number', 'identification_number'] 
+        fields = [
+            'nombre',
+            'apellido',
+            'email',
+            'telefono',
+            'tipo_documento', 
+            'documento',
+            'fecha_nacimiento',
+        ] 
         widgets = {
-            'first_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'last_name': forms.TextInput(attrs={'class': 'form-control'}),
-            'email': forms.EmailInput(attrs={'class': 'form-control'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'identification_number': forms.TextInput(attrs={'class': 'form-control'}),
+            'nombre': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nombre'}),
+            'apellido': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Apellido'}),
+            'email': forms.EmailInput(attrs={'class': 'form-control', 'placeholder': 'ejemplo@correo.com'}),
+            'telefono': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Número de teléfono'}),
+            'tipo_documento': forms.Select(attrs={'class': 'form-control'}),
+            'documento': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Número de Documento/Pasaporte'}),
+            'fecha_nacimiento': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
         }
 
 # =========================================================
@@ -134,29 +157,24 @@ class PassengerForm(forms.ModelForm):
 # 🚨 CORRECCIÓN: Usamos los nombres de campos que parecen ser correctos 🚨
 # =========================================================
 class PassengerManagementForm(forms.ModelForm):
-    """Formulario CRUD para el modelo Passenger (Admin)."""
     class Meta:
         model = Passenger
-        # 🚨 Usamos los nombres de campo consistentes (como en PassengerForm) 🚨
-        fields = ('first_name', 'last_name', 'identification_number', 'email', 'phone_number', 'birth_date') 
+        fields = ('nombre', 'apellido', 'documento', 'tipo_documento', 'email', 'telefono', 'fecha_nacimiento')
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Asumo que los campos 'birth_date' y 'identification_number' SÍ existen en el modelo.
-        # Si 'birth_date' NO existe, debes agregarlo a models.py y migrar.
-        # Si 'phone_number' NO existe, debes cambiarlo por 'phone' aquí y en el modelo.
-        
-        self.fields['first_name'].label = 'Nombre'
-        self.fields['last_name'].label = 'Apellido'
-        self.fields['identification_number'].label = 'Documento de Identidad'
+        self.fields['nombre'].label = 'Nombre'
+        self.fields['apellido'].label = 'Apellido'
+        self.fields['documento'].label = 'Número de Documento'
+        self.fields['tipo_documento'].label = 'Tipo de Documento'
         self.fields['email'].label = 'Correo Electrónico'
-        self.fields['phone_number'].label = 'Teléfono'
-        self.fields['birth_date'].label = 'Fecha de Nacimiento'
+        self.fields['telefono'].label = 'Teléfono'
+        self.fields['fecha_nacimiento'].label = 'Fecha de Nacimiento'
         
-        self.fields['birth_date'].widget = forms.DateInput(attrs={'type': 'date', 'placeholder': 'YYYY-MM-DD', 'class': 'form-control'})
-        self.fields['identification_number'].widget = forms.TextInput(attrs={'class': 'form-control'})
-        self.fields['phone_number'].widget = forms.TextInput(attrs={'class': 'form-control'})
+        self.fields['fecha_nacimiento'].widget = forms.DateInput(attrs={'type': 'date', 'placeholder': 'YYYY-MM-DD', 'class': 'form-control'})
+        self.fields['documento'].widget = forms.TextInput(attrs={'class': 'form-control'})
+        self.fields['telefono'].widget = forms.TextInput(attrs={'class': 'form-control'})
         self.fields['email'].widget = forms.EmailInput(attrs={'class': 'form-control'})
 
 
@@ -219,11 +237,13 @@ class AircraftManagementForm(forms.ModelForm):
     """
     class Meta:
         model = Aircraft
-        fields = ['registration_number', 'model_name', 'capacity']
+        fields = ['registration_number', 'model', 'capacity', 'rows', 'columns']
         widgets = {
-            'registration_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: A320-100'}),
-            'model_name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Boeing 737'}),
+            'registration_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: LV-FUE'}),
+            'model': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Ej: Boeing 737'}),
             'capacity': forms.NumberInput(attrs={'class': 'form-control', 'min': 10}),
+            'rows': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
+            'columns': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
         }
 
 # =========================================================

@@ -55,18 +55,24 @@ def index(request):
 def search_flights(request):
     results = Flight.objects.none() 
     form = FlightSearchForm(request.GET)
+    
     if form.is_valid():
         origin = form.cleaned_data.get('origin')
         destination = form.cleaned_data.get('destination')
         date = form.cleaned_data.get('date')
+        
         queryset = Flight.objects.all()
+        
         if origin:
             queryset = queryset.filter(origin=origin) 
         if destination:
             queryset = queryset.filter(destination=destination)
+            
         if date:
-            queryset = queryset.filter(departure_time__date=date)
-        results = queryset.order_by('departure_time')
+            queryset = queryset.filter(fecha_salida__date=date) 
+            
+        results = queryset.select_related('avion_id', 'origin', 'destination').order_by('fecha_salida')
+        
     context = {
         'search_form': form, 
         'results': results, 

@@ -6,6 +6,21 @@ import random
 import string
 import uuid
 
+# --- Definición de Choices ---
+STATUS_CHOICES = [
+    ('SCH', 'Programado'),
+    ('ACT', 'Activo / En Vuelo'),
+    ('DEL', 'Retrasado'),
+    ('CAN', 'Cancelado'),
+    ('ARR', 'Aterrizado / Finalizado'),
+]
+
+TIPO_DOCUMENTO_CHOICES = [
+    ('DNI', 'DNI (Documento Nacional de Identidad)'),
+    ('PAS', 'Pasaporte'),
+    ('OTR', 'Otro')
+]
+
 #generador de codigos de reservas aleatorias
 def generate_reservation_code():
     length = 6
@@ -15,12 +30,18 @@ def generate_reservation_code():
 
 #entidad avion
 class Aircraft(models.Model):
-    model_name = models.CharField(max_length=50, verbose_name="Modelo")
-    registration_number = models.CharField(max_length=10, unique=True, verbose_name="Matrícula")
-    capacity = models.PositiveIntegerField(verbose_name="Capacidad Total")
-
+    registration_number = models.CharField(
+        max_length=15, 
+        unique=True, 
+        verbose_name="Matrícula"
+    )
+    model = models.CharField(max_length=50, verbose_name="Modelo")
+    capacity = models.IntegerField(verbose_name="Capacidad Total de Asientos")
+    rows = models.IntegerField(default=10, verbose_name="Filas")
+    columns = models.IntegerField(default=6, verbose_name="Columnas")
+    
     def __str__(self):
-        return f"{self.model_name} ({self.registration_number})"
+        return f"{self.model} (Capacidad: {self.capacity})"
     
     class Meta:
         verbose_name = "Avión"
@@ -83,11 +104,23 @@ class Seat(models.Model):
 class Flight(models.Model):
     aircraft = models.ForeignKey(Aircraft, on_delete=models.PROTECT, related_name='flights', verbose_name="Avión Asignado")
     flight_number = models.CharField(max_length=10, unique=True, verbose_name="Número de Vuelo")
+    
+    # Se mantienen como CharField para alinearse con tu código anterior,
+    # aunque se recomienda usar FK a Airport para consistencia.
     origin = models.CharField(max_length=100, verbose_name="Origen")
     destination = models.CharField(max_length=100, verbose_name="Destino")
+    
     departure_time = models.DateTimeField(verbose_name="Hora de Salida")
     arrival_time = models.DateTimeField(verbose_name="Hora de Llegada")
-    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name="Precio Base")
+    
+    # 🚨 CAMPO AÑADIDO: ESTADO DEL VUELO 🚨
+    status = models.CharField(
+        max_length=3,
+        choices=STATUS_CHOICES,
+        default='SCH', # Programado por defecto
+        verbose_name="Estado"
+    )
 
     def clean(self):
         # Validación: Hora de llegada posterior a la de salida
@@ -98,7 +131,7 @@ class Flight(models.Model):
              raise ValidationError("El avión asignado no tiene una capacidad de asientos válida (capacidad = 0).")
 
     def __str__(self):
-        return f"Vuelo {self.flight_number}: {self.origin} -> {self.destination}"
+        return f"Vuelo {self.flight_number}: {self.origin} -> {self.destination} ({self.get_status_display()})"
     
     class Meta:
         verbose_name = "Vuelo"
@@ -107,26 +140,17 @@ class Flight(models.Model):
 
 
 class Passenger(models.Model):
-    first_name = models.CharField(max_length=30, verbose_name="Nombre")
-    last_name = models.CharField(max_length=30, verbose_name="Apellido")
-    email = models.EmailField(unique=True, verbose_name="Correo Electrónico")
-    phone_number = models.CharField(max_length=15, blank=True, null=True, verbose_name="Número de Teléfono")
-
-    identification_number = models.CharField(
-        max_length=50,
-        unique=True,
-        null=True,
-        verbose_name="DNI / Pasaporte"
-    )
+    nombre = models.CharField(max_length=100, verbose_name="Nombre")
+    apellido = models.CharField(max_length=100, verbose_name="Apellido")
+    tipo_documento = models.CharField(max_length=3, choices=TIPO_DOCUMENTO_CHOICES, verbose_name="Tipo de Documento")
+    documento = models.CharField(max_length=20, unique=True, null=True, verbose_name="Número de Documento") 
     
-    birth_date = models.DateField(
-        blank=True, 
-        null=True, 
-        verbose_name="Fecha de Nacimiento"
-    )
+    email = models.EmailField(verbose_name="Email de Contacto")
+    telefono = models.CharField(max_length=20, blank=True, null=True, verbose_name="Teléfono")
+    fecha_nacimiento = models.DateField(verbose_name="Fecha de Nacimiento")
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name}"
+        return f"{self.nombre} {self.apellido} ({self.documento})"
     
     class Meta:
         verbose_name = "Pasajero"
@@ -198,7 +222,7 @@ class Ticket(models.Model):
         default=False,
         verbose_name='Check-in Realizado'
     )
-    
+
     def __str__(self):
         return self.ticket_code
     
@@ -255,3 +279,14 @@ class FlightManagementForm(forms.ModelForm):
             self.add_error('destination', 'El origen y el destino no pueden ser la misma ciudad.')
             
         return cleaned_data
+
+class Airport(models.Model):
+    city = models.CharField(max_length=64, verbose_name="Ciudad")
+    code = models.CharField(max_length=3, unique=True, verbose_name="Código IATA")
+    
+    def __str__(self):
+        return f"{self.city} ({self.code})"
+
+    class Meta:
+        verbose_name = "Aeropuerto"
+        verbose_name_plural = "Aeropuertos"
