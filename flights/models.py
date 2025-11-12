@@ -3,14 +3,14 @@ from django.core.exceptions import ValidationError
 import random
 import string
 
-#generador de codigos de reservas aleatorias
+# generador de codigos de reservas aleatorias
 def generate_reservation_code():
     length = 6
     chars = string.ascii_uppercase + string.digits
     return ''.join(random.choice(chars) for _ in range(length))
 
 
-#entidad avion
+# entidad avion
 class Aircraft(models.Model):
     model_name = models.CharField(max_length=50, verbose_name="Modelo")
     registration_number = models.CharField(max_length=10, unique=True, verbose_name="Matrícula")
@@ -24,7 +24,7 @@ class Aircraft(models.Model):
         verbose_name_plural = "Aviones"
     
 
-#entidad asiento
+# entidad asiento
 class Seat(models.Model):
     aircraft = models.ForeignKey(Aircraft, on_delete=models.CASCADE, related_name='seats', verbose_name="Avión")
     seat_number = models.CharField(max_length=5, verbose_name="Número de Asiento")
@@ -44,9 +44,10 @@ class Seat(models.Model):
         verbose_name = "Asiento"
         verbose_name_plural = "Asientos"
         unique_together = ('aircraft', 'seat_number')
+        ordering = ['seat_number']  # CAMBIO C (opcional): orden por número de asiento
 
 
-#entidad vuelo
+# entidad vuelo
 class Flight(models.Model):
     aircraft = models.ForeignKey(Aircraft, on_delete=models.PROTECT, related_name='flights', verbose_name="Avión Asignado")
     flight_number = models.CharField(max_length=10, unique=True, verbose_name="Número de Vuelo")
@@ -73,7 +74,7 @@ class Flight(models.Model):
         ordering = ['departure_time']
 
 
-#entidad pasajero
+# entidad pasajero
 class Passenger(models.Model):
     first_name = models.CharField(max_length=30, verbose_name="Nombre")
     last_name = models.CharField(max_length=30, verbose_name="Apellido")
@@ -88,13 +89,29 @@ class Passenger(models.Model):
         verbose_name_plural = "Pasajeros"
 
 
-#entidad reserva
+# entidad reserva
 class Reservation(models.Model):
+    # CAMBIO A: agregamos status con choices
+    STATUS_PENDING = 'pending'
+    STATUS_CONFIRMED = 'confirmed'
+    STATUS_CANCELED = 'canceled'
+    STATUS_CHOICES = [
+        (STATUS_PENDING, 'Pendiente'),
+        (STATUS_CONFIRMED, 'Confirmada'),
+        (STATUS_CANCELED, 'Cancelada'),
+    ]
+
     passenger = models.ForeignKey(Passenger, on_delete=models.CASCADE, related_name='reservations', verbose_name="Pasajero")
     flight = models.ForeignKey(Flight, on_delete=models.CASCADE, related_name='reservations', verbose_name="Vuelo")
     seat = models.ForeignKey(Seat, on_delete=models.PROTECT, related_name='reservations', verbose_name="Asiento")
     reservation_code = models.CharField(max_length=6, unique=True, default=generate_reservation_code, verbose_name="Código de Reserva")
     booking_date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Reserva")
+    status = models.CharField(  # CAMBIO A
+        max_length=10,
+        choices=STATUS_CHOICES,
+        default=STATUS_PENDING,
+        verbose_name="Estado"
+    )
 
     def clean(self):
         # Validación 1: El asiento debe pertenecer al avión del vuelo.
@@ -116,6 +133,15 @@ class Reservation(models.Model):
             raise ValidationError(f"Capacidad excedida. El vuelo {self.flight.flight_number} solo tiene {capacidad} asientos.")
             
         super().save(*args, **kwargs) # Llama al método save original
+
+    # CAMBIO A: helpers de transición
+    def confirm(self):
+        self.status = self.STATUS_CONFIRMED
+        self.save(update_fields=['status'])
+
+    def cancel(self):
+        self.status = self.STATUS_CANCELED
+        self.save(update_fields=['status'])
         
     def __str__(self):
         return f"Reserva {self.reservation_code} para Vuelo {self.flight.flight_number} - {self.passenger.last_name}"
@@ -126,10 +152,22 @@ class Reservation(models.Model):
         unique_together = ('flight', 'seat')
 
 
-#entidad boleto
+# entidad boleto
 class Ticket(models.Model):
-    reservation = models.OneToOneField(Reservation, on_delete=models.CASCADE, primary_key='ticket', verbose_name="Reserva")
-    booking_reference = models.CharField(max_length=10, unique=True, default=generate_reservation_code, editable=False, verbose_name="Referencia de Billete")
+    # CAMBIO B: OneToOne bien definido con primary_key=True (antes estaba mal: primary_key='ticket')
+    reservation = models.OneToOneField(
+        Reservation,
+        on_delete=models.CASCADE,
+        primary_key=True,  # CAMBIO B
+        verbose_name="Reserva"
+    )
+    booking_reference = models.CharField(
+        max_length=10,
+        unique=True,
+        default=generate_reservation_code,  # genera 6 chars; está OK con max_length=10
+        editable=False,
+        verbose_name="Referencia de Billete"
+    )
     price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Precio")
     issue_date = models.DateTimeField(auto_now_add=True, verbose_name="Fecha de Emisión")
     is_checked_in = models.BooleanField(default=False, verbose_name="Check-in Realizado")

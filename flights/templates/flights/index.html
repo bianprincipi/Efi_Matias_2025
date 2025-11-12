@@ -219,7 +219,8 @@
 
      <div class="form-group">
        <label for="fecha-ida">Fecha de ida</label>
-       <input type="date" id="fecha-ida" required>
+       <!-- ya SIN required para permitir búsquedas sin fecha -->
+       <input type="date" id="fecha-ida">
      </div>
 
      <div class="form-group" id="fecha-vuelta-group">
@@ -349,9 +350,10 @@
       });
 
       const featureDescriptions = document.querySelectorAll('.feature-description');
-      featureDescriptions.forEach(desc => {
-        desc.style.fontSize = `${baseSize * 0.875}px`;
-      });
+      featureDescriptions.forEach((desc) => {
+       desc.style.fontSize = `${baseSize * 0.875}px`;    
+        });
+
 
       const labels = document.querySelectorAll('.form-group label, .radio-option label');
       labels.forEach(label => { label.style.fontSize = `${baseSize}px`; });
@@ -442,7 +444,7 @@
               ${v.origin} → ${v.destination}<br>
               Sale: ${salida}<br>
               Llega: ${llegada}<br>
-              Avión: ${v.aircraft?.model_name || '-'}
+              Avión: ${v.aircraft?.model_name || '-'} (${v.aircraft?.registration_number || '-'})
             </div>
             <div style="margin-top:10px">
               <a href="/flights/${v.id}/" class="search-button" style="display:inline-block;padding:10px 16px;text-decoration:none">Ver detalle</a>
@@ -452,23 +454,36 @@
       box.innerHTML = `<div class="features">${items}</div>`;
     }
 
-    document.getElementById('search-button').addEventListener('click', async (e) => {
-      e.preventDefault();
-      const form = document.getElementById('search-form');
-      if (!form.checkValidity()) { form.reportValidity(); return; }
+    // ----------------------------
+    // CAMBIO: normalizar entradas
+    // ----------------------------
+    function normalizePlace(x) {
+      if (!x) return '';
+      return x.split(',')[0].trim();  // "Córdoba, Argentina" -> "Córdoba"
+    }
 
-      const origin = document.getElementById('origen').value.trim();
-      const destination = document.getElementById('destino').value.trim();
-      const date = document.getElementById('fecha-ida').value; // YYYY-MM-DD
+    // CAMBIO: usar valores normalizados y enviar date solo si está
+    async function buscarVuelos() {
+      const originRaw = document.getElementById('origen').value.trim();
+      const destRaw   = document.getElementById('destino').value.trim();
+      const date      = document.getElementById('fecha-ida').value; // YYYY-MM-DD o ''
 
-      // Botón: feedback de carga
+      const origin = normalizePlace(originRaw);
+      const destination = normalizePlace(destRaw);
+
+      const params = new URLSearchParams();
+      if (origin)      params.set('origin', origin);
+      if (destination) params.set('destination', destination);
+      if (date)        params.set('date', date);
+
+      const url = `/flights/api/vuelos/buscar/?${params.toString()}`;
+
       const btn = document.getElementById('search-button');
       const original = btn.textContent;
       btn.textContent = 'Buscando...'; btn.disabled = true;
 
       try {
-        const qs = new URLSearchParams({ origin, destination, date }).toString();
-        const resp = await fetch(`/flights/api/vuelos/buscar/?${qs}`);
+        const resp = await fetch(url);
         if (!resp.ok) throw new Error('No se pudo buscar vuelos');
         const data = await resp.json();
         renderResults(data);
@@ -480,6 +495,13 @@
       } finally {
         setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1200);
       }
+    }
+
+    document.getElementById('search-button').addEventListener('click', (e) => {
+      e.preventDefault();
+      const form = document.getElementById('search-form');
+      if (!form.checkValidity()) { form.reportValidity(); return; }
+      buscarVuelos();
     });
 
     // --- Fechas mínimas (hoy hacia adelante) ---
@@ -488,7 +510,7 @@
     document.getElementById('fecha-vuelta').setAttribute('min', today);
   </script>
 
-  <!-- (Opcional) Script externo inyectado por CF u otros (puede omitirse si no aplica a tu despliegue) -->
+  <!-- (Opcional) Script externo inyectado por CF u otros -->
   <!--
   <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'99cf1b7555117f36',t:'MTc2Mjg3NzkyNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script>
   -->

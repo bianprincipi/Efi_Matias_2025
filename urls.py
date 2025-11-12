@@ -8,14 +8,9 @@ from rest_framework import permissions
 from drf_yasg.views import get_schema_view
 from drf_yasg import openapi
 from django.views.generic.base import RedirectView
+from django.views.generic import TemplateView  # (OK) login con template plano
 
-# Importación necesaria para cargar solo la plantilla HTML
-from django.views.generic import TemplateView
-
-# Nota: Eliminé la importación 'from django.contrib.auth import views as auth_views' 
-# ya que no usaremos su lógica de login/logout basada en sesión.
-
-
+# Swagger apuntando al prefijo /flights/ (tus APIs están montadas ahí)
 schema_view = get_schema_view(
     openapi.Info(
         title="API Sistema de Gestion de Aerolinea (EFI)",
@@ -30,26 +25,23 @@ schema_view = get_schema_view(
 )
 
 urlpatterns = [
-    path('', RedirectView.as_view(url='flights/', permanent=True), name='index_redirect'),
+    # CAMBIO: redirección por NOMBRE de ruta (namespace 'flights'), en lugar de URL fija
+    path('', RedirectView.as_view(pattern_name='flights:index', permanent=False), name='index_redirect'),  # CAMBIO
+
     path('admin/', admin.site.urls),
 
-    # conecta las urls de la aplicacion fligths
-    path('flights/', include('flights.urls')),
+    # CAMBIO: incluye el app con namespace 'flights' (habilita {% url 'flights:...' %})
+    path('flights/', include(('flights.urls', 'flights'), namespace='flights')),  # CAMBIO
 
-    # RUTA DE LOGIN CORREGIDA: Simplemente carga la plantilla login.html.
-    # El JavaScript dentro de esa plantilla manejará la autenticación JWT.
+    # Login de cara al front (tu index usa /login/). Sirve solo la plantilla; el JS maneja JWT.
     path('login/', TemplateView.as_view(template_name='login.html'), name='login'),
-    
-    # El logout se maneja completamente en el frontend (base.html) eliminando el token.
-    # Dejamos esta ruta solo si tienes otra lógica de backend que necesite limpiarse:
-    # path('logout/', auth_views.LogoutView.as_view(next_page='/flights/'), name='logout'), 
 
-    # endpoints de autenticacion jwt (ESTOS SON LOS QUE USA EL JAVASCRIPT)
+    # Endpoints JWT
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
-    # rutas de documentacion swagger/redoc
-    path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'), 
+    # Swagger / Redoc
+    path('swagger<format>/', schema_view.without_ui(cache_timeout=0), name='schema-json'),
     path('swagger/', schema_view.with_ui('swagger', cache_timeout=0), name='schema-swagger-ui'),
     path('redoc/', schema_view.with_ui('redoc', cache_timeout=0), name='schema-redoc'),
 ]
