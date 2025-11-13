@@ -77,6 +77,7 @@ urlpatterns = [
     
     # RUTAS DE DETALLE WEB 
     path('<int:flight_id>/', views.flight_detail, name='flight_detail'), 
+    path('<int:flight_id>/reserve/', views.book_flight, name='book_flight'),
     path('passenger/<int:passenger_id>/', views.passenger_detail, name='passenger_detail'),
     path('reservation/<int:reservation_id>/', views.reservation_detail, name='reservation_detail'),
     path('ticket/<int:ticket_id>/', views.ticket_detail, name='ticket_detail'),

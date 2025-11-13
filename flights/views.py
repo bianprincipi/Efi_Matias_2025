@@ -32,6 +32,7 @@ from .serializers import (
 from .permissions import IsAirlineAdmin     
 from .services.ticket_servide import TicketService
 from .mixins import AdminRequiredMixin
+from django.utils import timezone
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -40,14 +41,22 @@ logger = logging.getLogger(__name__)
 # 1. VISTAS TRADICIONALES DE DJANGO (Retornan HTML para el Front-end)
 # =======================================================================================
 def index(request):
-    search_form = FlightSearchForm()
+    search_form = FlightSearchForm(request.GET or None) # Inicializa el formulario para que pueda ser usado en la plantilla
+    
+    # 1. Filtro y Manejo de Errores (Mejorado)
     try: 
-        flights = Flight.objects.all().order_by('departure_time')[:5]
-    except Exception:
+        # Filtra solo los vuelos que salen a partir de ahora, lo cual es más útil
+        flights = Flight.objects.filter(
+            departure_time__gte=timezone.now()
+        ).order_by('departure_time')[:5]
+    except Exception as e:
+        # En caso de error de DB o modelo (aunque es raro), se usa la lista vacía
+        print(f"Error al cargar vuelos: {e}") 
         flights = []
+        
     context = {
         'flights': flights,
-        'search_form' : search_form,
+        'search_form': search_form,
         'page_title': "Bienvenido | Vuelos Disponibles"
     }
     return render(request, 'flights/index.html', context)
