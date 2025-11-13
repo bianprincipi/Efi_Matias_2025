@@ -30,7 +30,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
 
     # conecta las urls de la aplicacion fligths
-    path('flights/', include('flights.urls')),
+    path('flights/', include(('flights.urls', 'flights'), namespace='flights')),
 
     # RUTA DE LOGIN CORREGIDA: Simplemente carga la plantilla login.html.
     # El JavaScript dentro de esa plantilla manejará la autenticación JWT.

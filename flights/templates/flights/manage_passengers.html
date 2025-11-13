@@ -41,24 +41,20 @@
                         </thead>
                         <tbody>
                             {% for passenger in passengers %}
-                                <tr>
-                                    <td>
-                                        <a href="{% url 'flights:passenger_detail' passenger.pk %}">
-                                            {{ passenger.first_name }} {{ passenger.last_name }}
-                                        </a>
+                            <tr>
+                                <td>{{ passenger.nombre }}</td> 
+
+                                <td>{{ passenger.apellido }}</td> 
+
+                                <td>{{ passenger.documento }}</td> 
+                                
+                                <td>{{ passenger.email }}</td> 
+                                
+                                <td>{{ passenger.telefono }}</td> 
+                                
+                                <td>
                                     </td>
-                                    <td>{{ passenger.identification_number }}</td>
-                                    <td>{{ passenger.email }}</td>
-                                    <td>{{ passenger.phone_number|default:"N/A" }}</td>
-                                    <td>
-                                        <a href="{% url 'flights:edit_passenger' passenger.pk %}" class="btn btn-sm btn-warning me-2" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a href="{% url 'flights:delete_passenger' passenger.pk %}" class="btn btn-sm btn-danger" title="Eliminar">
-                                            <i class="fas fa-trash-alt"></i>
-                                        </a>
-                                    </td>
-                                </tr>
+                            </tr>
                             {% endfor %}
                         </tbody>
                     </table>

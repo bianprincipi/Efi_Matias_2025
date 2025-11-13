@@ -236,7 +236,7 @@ def manage_aircrafts(request):
 
 @staff_member_required
 def manage_passengers(request):
-    all_passengers = Passenger.objects.all().order_by('last_name')
+    all_passengers = Passenger.objects.all().order_by('apellido')
     context = {
         'page_title': 'Gestión de Pasajeros',
         'passengers': all_passengers,
@@ -262,13 +262,19 @@ def reserva_vuelo(request, flight_id):
     Página de reserva para un vuelo específico.
     Requiere que el usuario esté logueado (@login_required).
     """
-    flight = get_object_or_404(Flight, pk=flight_id)
+    vuelo = get_object_or_404(Flight, pk=flight_id)
+    
+    # 2. Crear una instancia del formulario de reserva
+    form = ReservationForm() 
 
     context = {
-        'flight': flight,
-        'page_title': f"Reservar Vuelo a {flight.destination_city}"
+        'vuelo': vuelo,
+        'form': form,
+        'page_title': f'Reserva de Vuelo a {vuelo.destination}'
     }
-    return render(request, 'reserva.html', context)
+    
+    # 3. Renderizar el template del formulario
+    return render(request, 'flights/reserva_vuelo.html', context)
 
 @login_required
 def confirmar_compra(request):
@@ -1147,7 +1153,7 @@ class PassengerCreateView(AdminRequiredMixin, SuccessMessageMixin, CreateView):
     form_class = PassengerManagementForm
     template_name = 'flights/passenger_form.html'
     success_url = reverse_lazy('flights:manage_passengers')
-    success_message = "Pasajero '%(last_name)s, %(first_name)s' creado exitosamente."
+    success_message = "El pasajero %(nombre)s %(apellido)s ha sido creado con éxito."
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
