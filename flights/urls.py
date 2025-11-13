@@ -17,7 +17,7 @@ urlpatterns = [
     
     # HOME PAGE 
     path('', views.index, name='index'),
-    
+    path('register/', views.register_customer, name='register'),
     # BÚSQUEDA WEB 
     path('search/', views.search_flights, name='search_flights'),
     

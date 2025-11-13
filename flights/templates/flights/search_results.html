@@ -4,6 +4,10 @@
 {% block content %}
 <div class="container mt-4">
     <h2 class="mb-4">{{ page_title }}</h2>
+    
+    <a href="{% url 'flights:index' %}" class="btn btn-secondary mb-3">
+        ← Volver a la Búsqueda
+    </a>
 
     <div class="card p-3 mb-4">
         <h5 class="card-title">Modificar Búsqueda</h5>
@@ -37,14 +41,14 @@
             <tbody>
                 {% for flight in results %}
                 <tr>
-                    <td>{{ flight.fecha_salida|date:"H:i" }} <small>{{ flight.fecha_salida|date:"d M" }}</small></td>
-                    <td>{{ flight.fecha_llegada|date:"H:i" }} <small>{{ flight.fecha_llegada|date:"d M" }}</small></td>
+                    <td>{{ flight.departure_time|date:"H:i" }} <small>{{ flight.departure_time|date:"d M" }}</small></td>
+                    <td>{{ flight.arrival_time|date:"H:i" }} <small>{{ flight.arrival_time|date:"d M" }}</small></td>
                     <td>{{ flight.origin }}</td>
                     <td>{{ flight.destination }}</td>
-                    <td>{{ flight.duracion }}</td>
-                    <td>${{ flight.precio_base|floatformat:2 }}</td>
+                    <td>{{ flight.duration }}</td>
+                    <td>${{ flight.price|floatformat:2 }}</td>
                     <td>
-                        <a href="{% url 'flights:passenger_details' flight.id %}" class="btn btn-sm btn-success">Seleccionar</a>
+                        <a href="{% url 'flights:book_flight' flight.id %}" class="btn btn-sm btn-success">Seleccionar</a>
                     </td>
                 </tr>
                 {% endfor %}

@@ -3,6 +3,7 @@ from django.db import models
 from .models import Reservation, Flight, Seat, Passenger, Ticket, Aircraft, Airport
 from django.contrib.auth.forms import UserCreationForm, UserChangeForm
 from django.contrib.auth import get_user_model
+from django.contrib.auth.models import User
 
 User = get_user_model()
 
@@ -369,3 +370,38 @@ class FlightManagementForm(forms.ModelForm):
             self.add_error('destination', 'El origen y el destino no pueden ser la misma ciudad.')
             
         return cleaned_data
+
+class CustomerRegistrationForm(UserCreationForm):
+    """
+    Formulario personalizado para el registro de nuevos clientes.
+    Extiende el UserCreationForm de Django.
+    """
+    email = forms.EmailField(required=True)
+    first_name = forms.CharField(max_length=30, required=True)
+    last_name = forms.CharField(max_length=30, required=True)
+
+    class Meta(UserCreationForm.Meta):
+        # Utiliza el modelo User de Django
+        model = User
+        # Define los campos que se mostrarán en el formulario
+        fields = UserCreationForm.Meta.fields + ('email', 'first_name', 'last_name',)
+
+    def clean_email(self):
+        # Asegura que el email sea único
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Este email ya está registrado.")
+        return email
+
+    def save(self, commit=True):
+        # Guardar el usuario y establecer campos adicionales si es necesario
+        user = super().save(commit=False)
+        user.email = self.cleaned_data["email"]
+        user.first_name = self.cleaned_data["first_name"]
+        user.last_name = self.cleaned_data["last_name"]
+        
+        # Opcionalmente, podrías añadir el usuario a un grupo 'Clientes' aquí
+        
+        if commit:
+            user.save()
+        return user

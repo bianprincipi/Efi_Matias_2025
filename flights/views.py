@@ -5,7 +5,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.db.models import Q, Exists, OuterRef
 from django.contrib import messages
 from django.core.exceptions import ValidationError
-from django.contrib.auth import get_user_model
+from django.contrib.auth import get_user_model, login
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -22,7 +22,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from .forms import (
     FlightSearchForm, ReservationForm, FlightForm, ReservationManagementForm, 
     TicketManagementForm, AircraftManagementForm, SeatManagementForm, 
-    PassengerManagementForm, UserManagementForm, UserUpdateForm, FlightManagementForm
+    PassengerManagementForm, UserManagementForm, UserUpdateForm, FlightManagementForm, CustomerRegistrationForm
 )
 from .models import Flight, Passenger, Reservation, Seat, Ticket, Aircraft 
 from .serializers import (
@@ -69,9 +69,11 @@ def search_flights(request):
             queryset = queryset.filter(destination=destination)
             
         if date:
-            queryset = queryset.filter(fecha_salida__date=date) 
+            queryset = queryset.filter(departure_time__date=date) 
             
-        results = queryset.select_related('avion_id', 'origin', 'destination').order_by('fecha_salida')
+        # 🚨 CORRECCIÓN: SOLO se usa 'aircraft' (la ForeignKey) en select_related
+        # Se eliminan 'origin' y 'destination'
+        results = queryset.select_related('aircraft').order_by('departure_time')
         
     context = {
         'search_form': form, 
@@ -1303,3 +1305,51 @@ class FlightSeatManagementView(StaffRequiredMixin, View):
 
     # También podrías añadir un método POST para manejar la reserva/cancelación directa
     # if request.method == 'POST': ...
+
+def book_flight(request, flight_id):
+    flight = get_object_or_404(Flight, pk=flight_id)
+    
+    # 1. LÓGICA DE PROCESAMIENTO DEL FORMULARIO
+    if request.method == 'POST':
+        form = ReservationForm(request.POST)
+        if form.is_valid():
+            # 2. GUARDAR LA RESERVA
+            reservation = form.save(commit=False)
+            reservation.flight = flight  # Asigna el vuelo actual a la reserva
+            # Aquí podrías asignar el usuario actual: reservation.user = request.user
+            reservation.save()
+            
+            # 3. REDIRECCIONAR a una página de confirmación o detalle
+            # Debes tener una URL llamada 'reservation_detail' que acepte el ID de la reserva.
+            return redirect('flights:reservation_detail', reservation_id=reservation.id)
+    
+    # 4. CREAR EL FORMULARIO VACÍO (GET request o si el formulario no es válido)
+    else:
+        form = ReservationForm()
+        
+    context = {
+        'flight': flight,
+        'form': form,
+        'page_title': f"Reservar Vuelo: {flight.origin} a {flight.destination}"
+    }
+    
+    return render(request, 'flights/book_flight.html', context)
+
+def register_customer(request):
+    if request.method == 'POST':
+        form = CustomerRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            # Opcional: Inicia sesión automáticamente después del registro
+            login(request, user) 
+            
+            # Redirigir a la página principal o a la página de búsqueda
+            return redirect('flights:index') 
+    else:
+        form = CustomerRegistrationForm()
+        
+    context = {
+        'form': form,
+        'page_title': 'Registro de Nuevo Cliente'
+    }
+    return render(request, 'flights/register.html', context)

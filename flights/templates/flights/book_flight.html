@@ -1,0 +1,92 @@
+{% extends 'base.html' %} 
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    
+    <div class="card mb-4 bg-light">
+        <div class="card-body">
+            <h2 class="card-title">{{ page_title }}</h2>
+            <p class="card-text">
+                **Origen:** {{ flight.origin }} | **Destino:** {{ flight.destination }}
+            </p>
+            <p class="card-text">
+                **Salida:** {{ flight.departure_time|date:"d M H:i" }} | 
+                **Avión:** {{ flight.aircraft.model }} (Capacidad: {{ flight.aircraft.capacity }})
+            </p>
+            <p class="card-text">
+                **Precio Base:** ${{ flight.price|floatformat:2 }}
+            </p>
+            <a href="{% url 'flights:search_flights' %}" class="btn btn-sm btn-secondary">
+                ← Volver a Resultados
+            </a>
+        </div>
+    </div>
+
+    <div class="card p-4">
+        <h4 class="mb-3">Selección de Pasajero y Asiento</h4>
+        
+        <form method="post">
+            {% csrf_token %}
+
+            {{ form.flight_id }}
+
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {{ form.non_field_errors }}
+                </div>
+            {% endif %}
+
+            <div class="mb-3">
+                <label for="{{ form.passenger.id_for_label }}" class="form-label">{{ form.passenger.label }}</label>
+                {{ form.passenger }}
+                {% if form.passenger.errors %}
+                    <div class="text-danger small">{{ form.passenger.errors }}</div>
+                {% endif %}
+                <small class="form-text text-muted">Si el pasajero no existe, tendrás que crearlo antes.</small>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label d-block">{{ form.seat.label }} (Asientos Disponibles)</label>
+                <div class="seat-selection-grid">
+                    {{ form.seat }}
+                </div>
+                {% if form.seat.errors %}
+                    <div class="text-danger small">{{ form.seat.errors }}</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-success btn-lg mt-3">Confirmar Reserva</button>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Estilos básicos para la visualización del RadioSelect de asientos */
+.seat-selection-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+.seat-selection-grid label {
+    display: inline-block;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+    background-color: #f9f9f9;
+}
+.seat-selection-grid input[type="radio"] {
+    display: none; /* Oculta el radio button nativo */
+}
+.seat-selection-grid input[type="radio"]:checked + label {
+    background-color: #28a745; /* Fondo verde cuando está seleccionado */
+    color: white;
+    border-color: #28a745;
+}
+</style>
+{% endblock %}

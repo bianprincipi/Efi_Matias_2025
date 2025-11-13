@@ -12,7 +12,6 @@
 
     <div class="row"> 
         
-        {# 1. GESTIÓN DE VUELOS #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
                 <a href="{% url 'flights:manage_flights' %}" class="card-link-card text-decoration-none text-dark"> 
@@ -25,7 +24,6 @@
             </div>
         </div>
         
-        {# 2. GESTIÓN DE RESERVAS #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
                 <a href="{% url 'flights:manage_reservations' %}" class="card-link-card text-decoration-none text-dark">
@@ -38,7 +36,6 @@
             </div>
         </div>
         
-        {# 3. GESTIÓN DE BOLETOS/TICKETS (Nuevo o Separado) #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
                 <a href="{% url 'flights:manage_tickets' %}" class="card-link-card text-decoration-none text-dark">
@@ -51,7 +48,6 @@
             </div>
         </div>
         
-        {# 4. GESTIÓN DE AVIONES #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
                 <a href="{% url 'flights:manage_aircrafts' %}" class="card-link-card text-decoration-none text-dark">
@@ -64,7 +60,6 @@
             </div>
         </div>
         
-        {# 5. GESTIÓN DE ASIENTOS #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
                 <a href="{% url 'flights:manage_seats' %}" class="card-link-card text-decoration-none text-dark">
@@ -77,10 +72,10 @@
             </div>
         </div>
 
-        {# 6. GESTIÓN DE PASAJEROS (URL corregida a la vista de clase) #}
+        
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
-                <a href="{% url 'flights:passenger_list' %}" class="card-link-card text-decoration-none text-dark">
+                <a href="{% url 'flights:manage_passengers' %}" class="card-link-card text-decoration-none text-dark">
                     <div class="card-body text-center">
                         <span class="h1 d-block text-danger"><i class="fas fa-users"></i></span>
                         <h5 class="card-title mt-2">Pasajeros</h5>
@@ -90,7 +85,6 @@
             </div>
         </div>
         
-        {# 7. GESTIÓN DE USUARIOS #}
         <div class="col-md-4 mb-4">
             <div class="card shadow-sm h-100">
                 <a href="{% url 'flights:manage_users' %}" class="card-link-card text-decoration-none text-dark">

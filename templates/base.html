@@ -31,7 +31,16 @@
             </div>
             
             <nav class="user-nav">
+                
+                {# 1. ENLACE DE REGISTRO Y LOGIN (VISIBLES SIN SESIÓN) #}
+                <a href="{% url 'flights:register' %}" class="nav-item" id="nav_register_link">📝 Registrarse</a>
+                
                 <a href="{% url 'login' %}" class="nav-item" id="nav_login_link">👤 Iniciar Sesión</a>
+                
+                {# 2. ENLACES DE SESIÓN ACTIVA (OCULTOS POR DEFECTO) #}
+                {% if request.user.is_authenticated and request.user.is_staff %}
+                    <a href="{% url 'flights:admin_dashboard' %}" class="nav-item" id="nav_dashboard_link" style="display: none;">⚙️ Dashboard</a>
+                {% endif %}
                 
                 <a href="#" class="nav-item" id="nav_logout_button" style="display: none;">🚪 Cerrar Sesión</a>
                 
@@ -58,29 +67,36 @@
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         
-        window.location.reload(); 
+        // Redirige al index después de cerrar sesión
+        window.location.href = "{% url 'flights:index' %}"; 
     }
 
     // --- Función para verificar el estado de la sesión y actualizar la UI ---
     function checkLoginStatus() {
         const loginLink = document.getElementById('nav_login_link');
+        const registerLink = document.getElementById('nav_register_link'); // Nuevo enlace
         const logoutButton = document.getElementById('nav_logout_button');
-        
+        const dashboardLink = document.getElementById('nav_dashboard_link'); // Nuevo enlace
+
         const token = localStorage.getItem('access_token');
 
         if (token) {
-            // Si hay token: Oculta Login, Muestra Logout
+            // Si hay token: Oculta Login/Registro, Muestra Logout/Dashboard
             if (loginLink) loginLink.style.display = 'none';
+            if (registerLink) registerLink.style.display = 'none';
             if (logoutButton) logoutButton.style.display = 'block';
+            if (dashboardLink) dashboardLink.style.display = 'block'; // Muestra dashboard
 
             if (logoutButton) {
                 logoutButton.addEventListener('click', handleLogout);
             }
 
         } else {
-            // Si NO hay token: Muestra Login, Oculta Logout
+            // Si NO hay token: Muestra Login/Registro, Oculta Logout/Dashboard
             if (loginLink) loginLink.style.display = 'block';
+            if (registerLink) registerLink.style.display = 'block';
             if (logoutButton) logoutButton.style.display = 'none';
+            if (dashboardLink) dashboardLink.style.display = 'none'; // Oculta dashboard
         }
     }
 
