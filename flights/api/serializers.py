@@ -1,7 +1,29 @@
-# flights/api/serializers.py (Crea este archivo)
-
 from rest_framework import serializers
 from ..models import Aircraft, Seat, Flight, Reservation, Passenger, Ticket 
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
+
+class UserRegistrationSerializer(serializers.ModelSerializer):
+    """
+    Serializer para el registro de nuevos usuarios.
+    """
+    password = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'})
+    password2 = serializers.CharField(write_only=True, required=True, style={'input_type': 'password'}, label="Confirmar Contraseña")
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'first_name', 'last_name', 'password', 'password2']
+
+    def validate(self, data):
+        if data['password'] != data['password2']:
+            raise serializers.ValidationError("Las contraseñas no coinciden.")
+        return data
+
+    def create(self, validated_data):
+        validated_data.pop('password2')
+        user = User.objects.create_user(**validated_data)
+        return user
 
 class AircraftSerializer(serializers.ModelSerializer):
     class Meta:

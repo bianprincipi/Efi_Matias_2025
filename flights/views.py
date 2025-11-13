@@ -61,6 +61,29 @@ def index(request):
     }
     return render(request, 'flights/index.html', context)
 
+def login_usuario(request):
+    """
+    Simplemente renderiza el template login.html que contiene la lógica JWT en JS.
+    """
+    return render(request, 'login.html')
+
+def registro_usuario(request):
+    if request.method == 'POST':
+        form = CustomerRegistrationForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            login(request, user) 
+            messages.success(request, "Registro exitoso. ¡Bienvenido a bordo!")
+            return redirect('flights:index') 
+    else:
+        form = CustomerRegistrationForm()
+    
+    context = {
+        'form': form,
+        'page_title': 'Registro de Nuevo Usuario'
+    }
+    return render(request, 'flights/registro.html', context)
+
 def search_flights(request):
     results = Flight.objects.none() 
     form = FlightSearchForm(request.GET)
@@ -232,6 +255,62 @@ def manage_users(request):
 # =========================================================
 # VISTAS CRUD PARA VUELOS (NUEVAS)
 # =========================================================
+
+@login_required
+def reserva_vuelo(request, flight_id):
+    """
+    Página de reserva para un vuelo específico.
+    Requiere que el usuario esté logueado (@login_required).
+    """
+    flight = get_object_or_404(Flight, pk=flight_id)
+
+    context = {
+        'flight': flight,
+        'page_title': f"Reservar Vuelo a {flight.destination_city}"
+    }
+    return render(request, 'reserva.html', context)
+
+@login_required
+def confirmar_compra(request):
+    """
+    Procesa el formulario POST de la página de reserva y simula la transacción.
+    
+    Ruta a la que apunta el action del formulario en reserva.html.
+    """
+    
+    if request.method == 'POST':
+        flight_id = request.POST.get('flight_id')
+        flight = get_object_or_404(Flight, pk=flight_id)
+
+        try:
+            pago_exitoso = True # 🚨 Asumimos éxito por ahora
+            
+            if pago_exitoso:
+                # Simulación de número de reserva
+                reservation_number = f"FLY{flight_id}{request.user.id}{timezone.now().timestamp()}"
+                
+                # Mensaje de éxito visible después de la redirección
+                messages.success(request, f"¡Compra exitosa! Su reserva es: {reservation_number[:12]}.")
+                
+                # Redirección a la ruta de éxito (DEBES CREAR ESTA RUTA EN urls.py)
+                return redirect('reserva_exitosa') 
+            else:
+                messages.error(request, "El pago fue rechazado. Intente con otra tarjeta.")
+                # Redirige de vuelta a la página de reserva para que el usuario intente de nuevo
+                return redirect('reserva_vuelo', flight_id=flight_id)
+
+        except Exception as e:
+            # Captura cualquier error inesperado (DB, servidor, etc.)
+            messages.error(request, f"Ocurrió un error inesperado al procesar la reserva: {e}")
+            return redirect('reserva_vuelo', flight_id=flight_id)
+
+    # Si alguien intenta acceder a esta URL con GET, lo redirigimos a inicio.
+    messages.warning(request, "Acceso inválido a la página de confirmación.")
+    return redirect('index')
+
+@login_required
+def reserva_exitosa(request):
+    return render(request, 'confirmacion_compra.html', {'page_title': 'Compra Exitosa'})
 
 @staff_member_required
 def create_flight(request):

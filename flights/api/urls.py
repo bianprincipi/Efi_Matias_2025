@@ -12,6 +12,7 @@ from .views import (
     TicketDetailByCodeAPIView,
     PassengersByFlightReportAPIView,
     ActiveReservationsByPassengerAPIView,
+    RegistroUsuarioAPIView,
 )
 
 urlpatterns = [
@@ -20,6 +21,8 @@ urlpatterns = [
     
     # API: Obtener layout de asientos de un avión
     path('aircrafts/<int:pk>/seats/', AircraftSeatsAPIView.as_view(), name='api_aircraft_seats'),
+    path('registro/', RegistroUsuarioAPIView.as_view(), name='api_registro'),
+    path('aircrafts/', AircraftListAPIView.as_view(), name='api_aircraft_list'),
     
     # API: Verificar disponibilidad de asiento
     path('availability/seat/', SeatAvailabilityAPIView.as_view(), name='api_seat_availability'),

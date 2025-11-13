@@ -17,7 +17,19 @@ urlpatterns = [
     
     # HOME PAGE 
     path('', views.index, name='index'),
-    path('register/', views.register_customer, name='register'),
+    path('login/', views.login_usuario, name='login'),
+    path('register/', views.registro_usuario, name='register'),
+
+    path('registrarse/', views.registro_usuario, name='registrarse'),
+
+    # --- PROCESO DE RESERVA (Añadidas para el flujo) ---
+    # 1. Muestra el formulario de reserva para un ID específico (Usado con ?next=)
+    path('reserva/vuelo/<int:flight_id>/', views.reserva_vuelo, name='reserva_vuelo'),
+    
+    # 2. Procesa la simulación de pago del formulario de reserva
+    path('confirmar-compra/', views.confirmar_compra, name='confirmar_compra'),
+    path('reserva/exitosa/', views.reserva_exitosa, name='reserva_exitosa'),
+
     # BÚSQUEDA WEB 
     path('search/', views.search_flights, name='search_flights'),
     

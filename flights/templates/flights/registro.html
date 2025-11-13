@@ -1,0 +1,120 @@
+{% extends "base.html" %} 
+
+{% block title %}Registro de Usuario - Aerolínea{% endblock %}
+
+{% block content %}
+<div style="max-width: 400px; margin: 50px auto; padding: 20px; border: 1px solid #ccc; border-radius: 8px;">
+    <h2 style="text-align: center; margin-bottom: 20px;">Crear Cuenta Nueva</h2>
+    
+    <form id="registro_form" method="POST" action="/api/v1/registro/">
+    
+    {% csrf_token %} 
+    
+    <input type="hidden" id="next_url_input" name="next_url" value="">
+
+        <div class="form-group">
+            <label for="reg_username">Usuario:</label>
+            <input type="text" id="reg_username" name="username" placeholder="Nombre de usuario" required style="width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box;">
+        </div>
+        
+        <div class="form-group">
+            <label for="reg_email">Email:</label>
+            <input type="email" id="reg_email" name="email" placeholder="Correo electrónico" required style="width: 100%; padding: 10px; margin-bottom: 15px; box-sizing: border-box;">
+        </div>
+
+        <div class="form-group">
+            <label for="reg_password">Contraseña:</label>
+            <input type="password" id="reg_password" name="password" placeholder="Contraseña" required style="width: 100%; padding: 10px; margin-bottom: 20px; box-sizing: border-box;">
+        </div>
+        
+        <div class="form-group">
+            <label for="reg_password2">Confirmar Contraseña:</label>
+            <input type="password" id="reg_password2" name="password2" placeholder="Repetir Contraseña" required style="width: 100%; padding: 10px; margin-bottom: 20px; box-sizing: border-box;">
+        </div>
+        
+        <button type="submit" style="width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">Registrarse</button> 
+        
+        <p style="text-align: center; margin-top: 15px;">¿Ya tienes cuenta? <a href="/login/">Iniciar Sesión</a></p>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+    // Función para obtener el token CSRF de la cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                let cookie = cookies[i].trim();
+                // ¿Este cookie string empieza con el nombre que estamos buscando?
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('registro_form');
+        const nextUrlInput = document.getElementById('next_url_input');
+
+        // Llenar el campo next_url si existe
+        const urlParams = new URLSearchParams(window.location.search);
+        const nextUrl = urlParams.get('next');
+        if (nextUrl) {
+            nextUrlInput.value = nextUrl;
+        }
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault(); // 🛑 Evita el envío POST directo del navegador
+            
+            // 1. Obtener los datos del formulario
+            const formData = new FormData(form);
+            const data = Object.fromEntries(formData.entries());
+
+            // 2. Enviar la solicitud POST a la API
+            fetch(form.action, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken') // Incluir el token de seguridad
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => {
+                // Si la respuesta no es 2xx, lanza un error para ir al .catch
+                if (!response.ok) {
+                    return response.json().then(err => { throw err; });
+                }
+                return response.json();
+            })
+            .then(data => {
+                // 3. Éxito: Redirigir al index o a la página de login
+                alert("¡Registro exitoso! Por favor, inicia sesión.");
+                // Redirige al login o al index después de un registro exitoso
+                window.location.href = nextUrl ? nextUrl : "/login/"; 
+            })
+            .catch(error => {
+                // 4. Fracaso: Manejar errores de validación (ej. usuario ya existe)
+                console.error('Error de registro:', error);
+                
+                // Muestra el error de Django Rest Framework al usuario
+                let errorMessage = "Error en el registro. Verifique sus datos.";
+                if (error.username) {
+                    errorMessage = "Error de Usuario: " + error.username.join(' ');
+                } else if (error.email) {
+                    errorMessage = "Error de Email: " + error.email.join(' ');
+                } else if (error.password) {
+                    errorMessage = "Error de Contraseña: " + error.password.join(' ');
+                }
+                
+                alert(errorMessage);
+            });
+        });
+    });
+</script>
+{% endblock extra_js %}

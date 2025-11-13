@@ -17,16 +17,39 @@
         
         <p id="login_message" style="color: red; text-align: center; margin-top: 15px;"></p>
     </div>
+
+    <hr style="margin: 20px 0;">
+    <div style="text-align: center;">
+        <p style="margin-bottom: 10px;">¿Aún no tienes cuenta?</p>
+        <a id="register_link" href="{% url 'flights:registrarse' %}" style="display: block; width: 100%; padding: 10px; background-color: #007bff; color: white; border: none; border-radius: 5px; text-decoration: none; cursor: pointer;">
+            Regístrate Aquí
+        </a>
+    </div>
+    
 </div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
+// Función para obtener el valor del parámetro 'next' de la URL
+function getNextUrl() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('next');
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const loginButton = document.getElementById('login_button');
+    const nextUrl = getNextUrl(); // Obtenemos la URL de destino deseada
+
+    // Si existe una URL de destino ('next'), la pasamos también al enlace de registro
+    if (nextUrl) {
+        const registerLink = document.getElementById('register_link');
+        registerLink.href = `/registrarse/?next=${encodeURIComponent(nextUrl)}`;
+    }
 
     if (loginButton) {
         loginButton.addEventListener('click', async function() {
+            // ... (código para obtener credenciales y mostrar mensaje es el mismo) ...
             const username = document.getElementById('login_username').value;
             const password = document.getElementById('login_password').value;
             const messageDisplay = document.getElementById('login_message');
@@ -64,8 +87,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     messageDisplay.textContent = 'Verificando perfil y permisos...'; 
 
-                    // 2. OBTENER PERFIL (Llamada al nuevo endpoint de la app flights)
-                    const profileResponse = await fetch('http://127.0.0.1:8000/flights/api/profile/', {
+                    // 2. OBTENER PERFIL
+                    const profileResponse = await fetch('http://127.00.1:8000/flights/api/profile/', {
                         method: 'GET',
                         headers: {
                             'Authorization': `Bearer ${data.access}` 
@@ -75,26 +98,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (profileResponse.ok) {
                         const profileData = await profileResponse.json();
                         
-                        // Guardamos el estado de Admin
                         localStorage.setItem('is_admin', profileData.is_staff); 
                         
                         messageDisplay.style.color = 'green';
                         
-                        // 3. LÓGICA DE REDIRECCIÓN BASADA EN EL ROL (is_staff)
-                        if (profileData.is_staff === true) {
-                            messageDisplay.textContent = '¡Bienvenido Administrador! Redirigiendo a Dashboard...';
-                            // Redirige al Dashboard de Administrador
-                            window.location.href = '/flights/dashboard/'; 
-                        } else {
-                            messageDisplay.textContent = '¡Bienvenido Pasajero! Redirigiendo a inicio...';
-                            // Redirige a la página principal del pasajero
-                            window.location.href = '/flights/'; 
+                        // 3. LÓGICA DE REDIRECCIÓN FINAL MODIFICADA
+                        
+                        // PRIORIDAD: 1. URL 'next', 2. Dashboard (Admin), 3. Inicio (Pasajero)
+                        
+                        let finalRedirectUrl = '/flights/'; // Por defecto
+                        
+                        // A. Si existe una URL 'next' (vienes de una reserva), ¡ve allí!
+                        if (nextUrl) {
+                            finalRedirectUrl = nextUrl;
+                            messageDisplay.textContent = '¡Login exitoso! Redirigiendo a la reserva...';
                         }
+                        // B. Si no hay 'next' y es Admin, ve al Dashboard
+                        else if (profileData.is_staff === true) {
+                            finalRedirectUrl = '/flights/dashboard/';
+                            messageDisplay.textContent = '¡Bienvenido Administrador! Redirigiendo a Dashboard...';
+                        }
+                        // C. Si no hay 'next' y es Pasajero, ve al inicio
+                        else {
+                            messageDisplay.textContent = '¡Bienvenido Pasajero! Redirigiendo a inicio...';
+                        }
+                        
+                        // Ejecutar la redirección
+                        window.location.href = finalRedirectUrl; 
 
                     } else {
                         // Fallo al obtener perfil (pero el token es válido)
                         messageDisplay.style.color = 'orange';
-                        messageDisplay.textContent = 'Login exitoso, pero no se pudo obtener el perfil. Redirigiendo...';
+                        messageDisplay.textContent = 'Login exitoso, pero no se pudo obtener el perfil. Redirigiendo a inicio...';
                         window.location.href = '/flights/';
                     }
 

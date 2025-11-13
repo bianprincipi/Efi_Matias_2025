@@ -12,6 +12,8 @@ from rest_framework.response import Response
 import uuid
 from rest_framework.renderers import JSONRenderer
 from rest_framework.decorators import api_view, permission_classes
+from .serializers import UserRegistrationSerializer
+from django.contrib.auth.models import User
 
 # Endpoint 1: Listar Aviones
 class AircraftListAPIView(generics.ListAPIView):
@@ -65,6 +67,13 @@ class SeatAvailabilityAPIView(APIView):
                 "available": True,
                 "message": f"El asiento {seat.seat_number} está disponible."
             })
+
+class RegistroUsuarioAPIView(generics.CreateAPIView):
+    """
+    Permite el registro de nuevos usuarios mediante POST.
+    """
+    serializer_class = UserRegistrationSerializer
+    permission_classes = [AllowAny]
 
 class ReservationCreateAPIView(generics.CreateAPIView):
     """
